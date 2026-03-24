@@ -858,7 +858,9 @@ input, select, textarea {
 }
 """)
 
-# Load and display Barons logo
+
+import streamlit as st
+
 logo = Image.open("barons_logo.png")
 
 st.markdown(
@@ -872,5 +874,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
