@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 from io import StringIO
+from PIL import Image
+
 
 # ============================
 # CONFIG
@@ -10,7 +12,7 @@ from io import StringIO
 CUMULATIVE_FILE = "ct_barons_stats.csv"
 MASTER_LOG_FILE = "game_logs.csv"
 GAME_LOG_DIR = "logs"
-COACH_PASSWORD = "Murphy200"
+COACH_PASSWORD = "jonesy34"
 
 os.makedirs(GAME_LOG_DIR, exist_ok=True)
 
@@ -527,7 +529,7 @@ def compute_team_pitching_totals(df, league_filter=None):
 # UI: TABS
 # ============================
 
-st.title("CT Barons Baseball Dashboard")
+st.title("CT Barons South Baseball Dashboard")
 
 tab1, tab2, tab3, tab4 = st.tabs(["Cumulative Players", "Team Totals", "Game Logs", "Coach Tools"])
 
@@ -768,3 +770,107 @@ with tab4:
                     update_pitcher_cumulative(csv_name_p, stats_p)
                     log_pitching(date, opponent, league_game, csv_name_p, stats_p)
                     st.success(f"Pitching stats recorded for {csv_name_p}.")
+                    
+def inject_css(css: str):
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+                                                                     
+inject_css("""
+/* GLOBAL BACKGROUND */
+body, .stApp {
+    background-color: #000000 !important; /* Orioles black */
+    color: #FFFFFF !important;
+}
+
+/* HEADERS */
+h1, h2, h3, h4 {
+    color: #FF6F00 !important; /* Orioles orange */
+    font-weight: 800;
+}
+
+/* TABS */
+.stTabs [data-baseweb="tab"] {
+    background-color: #111111 !important;
+    color: #FFFFFF !important;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-weight: 600;
+    border: 1px solid #333333;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #FF6F00 !important; /* Orioles orange */
+    color: #000000 !important;
+    border: 1px solid #FF6F00 !important;
+}
+
+/* BUTTONS */
+.stButton>button {
+    background-color: #FF6F00 !important;
+    color: #000000 !important;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-weight: 700;
+    border: none;
+}
+
+.stButton>button:hover {
+    background-color: #FFA040 !important;
+    color: #000000 !important;
+}
+
+/* DATAFRAME TABLE HEADERS */
+.dataframe th {
+    background-color: #FF6F00 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+}
+
+/* DATAFRAME CELLS */
+.dataframe td {
+    background-color: #111111 !important;
+    color: #FFFFFF !important;
+    border-color: #333333 !important;
+}
+
+/* INPUT FIELDS */
+input, select, textarea {
+    background-color: #222222 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #FF6F00 !important;
+    border-radius: 4px !important;
+}
+
+/* CHECKBOXES */
+.stCheckbox>div>div {
+    border-color: #FF6F00 !important;
+}
+
+/* SUCCESS / ERROR MESSAGES */
+.stSuccess {
+    background-color: #1B5E20 !important;
+    color: #FFFFFF !important;
+}
+
+.stError {
+    background-color: #B71C1C !important;
+    color: #FFFFFF !important;
+}
+""")
+
+# Load and display Barons logo
+logo = Image.open("barons_logo.png")
+
+st.markdown(
+    """
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <img src="barons_logo.png" width="140">
+        <h1 style="color: #FF6F00; margin: 0; font-weight: 900;">
+            CT BARONS BASEBALL DASHBOARD
+        </h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
