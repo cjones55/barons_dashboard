@@ -777,7 +777,7 @@ with tab3:
 
 # ---------- TAB 5: PLAYER PROFILES ----------
 
-with tab5:
+with tab4:
     st.header("Player Profiles")
 
     ensure_cumulative_exists()
@@ -803,7 +803,7 @@ with tab5:
         st.dataframe(pit_row)
         
 # ---------- TAB 6: ROSTER ----------
-with tab6:
+with tab5:
     st.header("CT Barons South Roster")
 
     df_roster = pd.DataFrame(ROSTER_DATA)
@@ -817,7 +817,7 @@ with tab6:
 
 # ---------- TAB 4: COACH TOOLS ----------
 
-with tab4:
+with tab6:
     st.header("Coach Tools (Password Protected)")
 
     if not st.session_state.authenticated:
