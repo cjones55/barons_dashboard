@@ -95,17 +95,19 @@ input, select, textarea {
 # CENTERED LOGO HEADER
 # ============================
 
-st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
-st.image("barons_logo.png", width=150)
-st.markdown(
-    """
-    <h1 style="color:#FF6F00; font-weight:900; margin-top:10px; text-align:center;">
-        CT BARONS BASEBALL DASHBOARD
-    </h1>
-    """,
-    unsafe_allow_html=True
-)
-st.markdown("</div>", unsafe_allow_html=True)
+col_left, col_center, col_right = st.columns([1, 2, 1])
+
+with col_center:
+    st.image("barons_logo.png", width=150)
+    st.markdown(
+        """
+        <h1 style="color:#FF6F00; font-weight:900; margin-top:10px; text-align:center;">
+            CT BARONS BASEBALL DASHBOARD
+        </h1>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 
 
