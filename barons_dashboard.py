@@ -95,16 +95,19 @@ input, select, textarea {
 # CENTERED LOGO HEADER
 # ============================
 
+st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 st.image("barons_logo.png", width=150)
-
 st.markdown(
     """
-    <h1 style="text-align:center; color:#FF6F00; font-weight:900; margin-top:-10px;">
+    <h1 style="color:#FF6F00; font-weight:900; margin-top:10px; text-align:center;">
         CT BARONS BASEBALL DASHBOARD
     </h1>
     """,
     unsafe_allow_html=True
 )
+st.markdown("</div>", unsafe_allow_html=True)
+
+
 
 
 
