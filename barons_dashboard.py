@@ -100,7 +100,7 @@ st.image("barons_logo.png", width=150)
 st.markdown(
     """
     <h1 style="color:#FF6F00; font-weight:900; margin-top:10px; text-align:center;">
-        CT BARONS BASEBALL DASHBOARD
+        CT BARONS SOUTH BASEBALL
     </h1>
     """,
     unsafe_allow_html=True
@@ -618,9 +618,9 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Cumulative Players",
     "Team Totals",
     "Game Logs",
-    "Coach Tools",
     "Player Profiles",
     "Roster"
+    "Coach Tools",
 ])
 
 
@@ -772,6 +772,49 @@ with tab3:
         st.dataframe(df_view)
 
 
+
+
+
+# ---------- TAB 5: PLAYER PROFILES ----------
+
+with tab5:
+    st.header("Player Profiles")
+
+    ensure_cumulative_exists()
+    df_hitters, df_pitchers = load_cumulative()
+
+    all_players = sorted(set(df_hitters["Name"]).union(df_pitchers["Name"]))
+    player = st.selectbox("Select a player", all_players)
+
+    st.subheader(f"Profile: {player}")
+
+    # Hitting stats
+    hit_row = df_hitters[df_hitters["Name"] == player]
+    if not hit_row.empty:
+        st.markdown("### Hitting Stats")
+        st.dataframe(hit_row)
+
+    # Pitching stats
+    pit_row = df_pitchers[df_pitchers["Name"] == player]
+    if not pit_row.empty:
+        st.markdown("### Pitching Stats")
+        pit_row = pit_row.copy()
+        pit_row["Unearned"] = pit_row["R"] - pit_row["ER"]
+        st.dataframe(pit_row)
+        
+# ---------- TAB 6: ROSTER ----------
+with tab6:
+    st.header("CT Barons South Roster")
+
+    df_roster = pd.DataFrame(ROSTER_DATA)
+    df_roster = df_roster.sort_values("Number")
+
+    st.dataframe(
+        df_roster.style.format({
+            "Number": "{:d}"
+        })
+    )
+
 # ---------- TAB 4: COACH TOOLS ----------
 
 with tab4:
@@ -893,45 +936,3 @@ with tab4:
                 rebuild_cumulative_from_logs(df_logs)
 
                 st.success("Entry removed and stats recalculated.")
-
-
-# ---------- TAB 5: PLAYER PROFILES ----------
-
-with tab5:
-    st.header("Player Profiles")
-
-    ensure_cumulative_exists()
-    df_hitters, df_pitchers = load_cumulative()
-
-    all_players = sorted(set(df_hitters["Name"]).union(df_pitchers["Name"]))
-    player = st.selectbox("Select a player", all_players)
-
-    st.subheader(f"Profile: {player}")
-
-    # Hitting stats
-    hit_row = df_hitters[df_hitters["Name"] == player]
-    if not hit_row.empty:
-        st.markdown("### Hitting Stats")
-        st.dataframe(hit_row)
-
-    # Pitching stats
-    pit_row = df_pitchers[df_pitchers["Name"] == player]
-    if not pit_row.empty:
-        st.markdown("### Pitching Stats")
-        pit_row = pit_row.copy()
-        pit_row["Unearned"] = pit_row["R"] - pit_row["ER"]
-        st.dataframe(pit_row)
-        
-# ---------- TAB 6: ROSTER ----------
-with tab6:
-    st.header("CT Barons South Roster")
-
-    df_roster = pd.DataFrame(ROSTER_DATA)
-    df_roster = df_roster.sort_values("Number")
-
-    st.dataframe(
-        df_roster.style.format({
-            "Number": "{:d}"
-        })
-    )
-
