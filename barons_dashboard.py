@@ -15,7 +15,7 @@ COACH_PASSWORD = "jonesy34"
 
 os.makedirs(GAME_LOG_DIR, exist_ok=True)
 
-st.set_page_config(page_title="CT Barons Dashboard", layout="wide")
+st.set_page_config(page_title="CT Barons South", layout="wide")
 
 # ============================
 # THEME CSS (Orioles / Barons)
@@ -589,7 +589,7 @@ ROSTER_DATA = [
     {"Number": 24, "Name": "Adien O'Laughlin", "Position": "OF", "Bats": "R", "Throws": "R", "School": "Trinity", "Year": "Freshman"},
     {"Number": 15, "Name": "Nick Carlucci", "Position": "OF", "Bats": "R", "Throws": "R", "School": "Pace", "Year": "Senior"},
     {"Number": 23, "Name": "Mike Fischetti", "Position": "OF", "Bats": "L", "Throws": "R", "School": "Gettysburg", "Year": "Junior"},
-    {"Number": 33, "Name": "Staller", "Position": "OF", "Bats": "R", "Throws": "R", "?": "?", "Year": "?"},
+    {"Number": 33, "Name": "Staller", "Position": "OF", "Bats": "R", "Throws": "R", "School": "?", "Year": "?"},
 
     # Pitchers
     {"Number": 30, "Name": "Tristan Pearl", "Position": "P", "Bats": "L", "Throws": "L", "School": "Babson", "Year": "Senior"},
@@ -924,7 +924,7 @@ with tab5:
         
 # ---------- TAB 6: ROSTER ----------
 with tab6:
-    st.header("CT Barons Roster")
+    st.header("CT Barons South Roster")
 
     df_roster = pd.DataFrame(ROSTER_DATA)
     df_roster = df_roster.sort_values("Number")
