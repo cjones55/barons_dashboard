@@ -109,6 +109,24 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
+# ============================
+# TEAM RECORD HELPERS
+# ============================
+
+TEAM_RECORD_FILE = "team_record.csv"
+
+def load_team_record():
+    if not os.path.exists(TEAM_RECORD_FILE):
+        return {"Wins": 0, "Losses": 0}
+    df = pd.read_csv(TEAM_RECORD_FILE)
+    return {"Wins": int(df.loc[0, "Wins"]), "Losses": int(df.loc[0, "Losses"])}
+
+def save_team_record(wins, losses):
+    df = pd.DataFrame([{"Wins": wins, "Losses": losses}])
+    df.to_csv(TEAM_RECORD_FILE, index=False)
+
+
 record = load_team_record()
 st.markdown(
     f"""
@@ -553,21 +571,6 @@ def rebuild_cumulative_from_logs(df_logs):
             }
             update_pitcher_cumulative(row["Player"], stats)
 
-# ============================
-# TEAM RECORD HELPERS
-# ============================
-
-TEAM_RECORD_FILE = "team_record.csv"
-
-def load_team_record():
-    if not os.path.exists(TEAM_RECORD_FILE):
-        return {"Wins": 0, "Losses": 0}
-    df = pd.read_csv(TEAM_RECORD_FILE)
-    return {"Wins": int(df.loc[0, "Wins"]), "Losses": int(df.loc[0, "Losses"])}
-
-def save_team_record(wins, losses):
-    df = pd.DataFrame([{"Wins": wins, "Losses": losses}])
-    df.to_csv(TEAM_RECORD_FILE, index=False)
 
 
 
