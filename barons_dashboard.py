@@ -573,19 +573,56 @@ def rebuild_cumulative_from_logs(df_logs):
             update_pitcher_cumulative(row["Player"], stats)
 
 
+ROSTER_DATA = [
+    {"Number": 11, "Name": "Oliver Merced", "Position": "1B", "Bats": "L", "Throws": "R", "School": "Amherst", "Year": "Senior"},
+    {"Number": 10, "Name": "Antonio Galiza", "Position": "C/1B", "Bats": "R", "Throws": "R", "School": "Western NE.", "Year": "Senior"},
+    {"Number": 16, "Name": "Charlie Ellis", "Position": "OF/1B", "Bats": "L", "Throws": "L", "School": "Stevens IT", "Year": "Freshman"},
+    {"Number": 41, "Name": "Liam DaSilva", "Position": "C/1B", "Bats": "R", "Throws": "R", "School": "Dean College", "Year": "Freshman"},
+    {"Number": 8, "Name": "Henry Silva", "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Colby", "Year": "Junior"},
+    {"Number": 50, "Name": "Brett Davino", "Position": "UTIL", "Bats": "L", "Throws": "R", "School": "Stony Brook", "Year": "Senior"},
+    {"Number": 6, "Name": "Mason Kuckinski", "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Saint Anselm", "Year": "Freshman"},
+    {"Number": 7, "Name": "Nick Dorso", "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Roanoke", "Year": "Sophomore"},
+    {"Number": 22, "Name": "Mo Hood", "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Wash U", "Year": "Freshman"},
+    {"Number": 27, "Name": "Joel Strand", "Position": "C", "Bats": "R", "Throws": "R", "School": "Illinois Wesleyan", "Year": "Junior"},
+    {"Number": 69, "Name": "Brandon Skerritt", "Position": "C", "Bats": "R", "Throws": "R", "School": "Bentley", "Year": "Freshman"},
+    {"Number": 9, "Name": "Jack Farnen", "Position": "OF", "Bats": "L", "Throws": "L", "School": "Hobart", "Year": "Junior"},
+    {"Number": 24, "Name": "Adien O'Laughlin", "Position": "OF", "Bats": "R", "Throws": "R", "School": "Trinity", "Year": "Freshman"},
+    {"Number": 15, "Name": "Nick Carlucci", "Position": "OF", "Bats": "R", "Throws": "R", "School": "Pace", "Year": "Senior"},
+    {"Number": 23, "Name": "Mike Fischetti", "Position": "OF", "Bats": "L", "Throws": "R", "School": "Gettysburg", "Year": "Junior"},
+    {"Number": 33, "Name": "Staller", "Position": "OF", "Bats": "R", "Throws": "R", "?": "?", "Year": "?"},
+
+    # Pitchers
+    {"Number": 30, "Name": "Tristan Pearl", "Position": "P", "Bats": "L", "Throws": "L", "School": "Babson", "Year": "Senior"},
+    {"Number": 17, "Name": "Nevin Belanger", "Position": "P", "Bats": "L", "Throws": "L", "School": "Johnson and Wales", "Year": "Senior"},
+    {"Number": 20, "Name": "Tommy Burgers", "Position": "P", "Bats": "R", "Throws": "R", "School": "Gettysburg", "Year": "Junior"},
+    {"Number": 89, "Name": "Niko Christon", "Position": "P", "Bats": "R", "Throws": "R", "School": "CCSU", "Year": "Junior"},
+    {"Number": 34, "Name": "Colin D'onofrio", "Position": "P", "Bats": "R", "Throws": "R", "School": "SUNY Purchase", "Year": "Junior"},
+    {"Number": 19, "Name": "Jack Jenson", "Position": "P", "Bats": "R", "Throws": "R", "School": "Bentley", "Year": "Sophomore"},
+    {"Number": 18, "Name": "Merritt Hole", "Position": "P", "Bats": "R", "Throws": "R", "School": "Lafayette", "Year": "Sophomore"},
+    {"Number": 40, "Name": "Nick Hios", "Position": "P", "Bats": "L", "Throws": "L", "School": "Monmouth", "Year": "Senior"},
+    {"Number": 1, "Name": "James Aselta", "Position": "P", "Bats": "R", "Throws": "R", "School": "Sacred Heart", "Year": "Senior"},
+    {"Number": 72, "Name": "Nick Petta", "Position": "P", "Bats": "R", "Throws": "R", "School": "Roger Williams", "Year": "Freshman"},
+    {"Number": 5, "Name": "Christan Barboto", "Position": "P", "Bats": "R", "Throws": "R", "School": "Emory", "Year": "Freshman"},
+    {"Number": 58, "Name": "Adam Rosenfield", "Position": "P", "Bats": "R", "Throws": "R", "School": "Montclair St.", "Year": "Sophomore"},
+    {"Number": 42, "Name": "Branden Gaska", "Position": "P", "Bats": "R", "Throws": "R", "School": "Westfield St.", "Year": "Freshman"},
+    {"Number": 35, "Name": "Tyler Easterbrook", "Position": "P", "Bats": "R", "Throws": "R", "School": "Tufts", "Year": "Freshman"},
+]
+
 
 
 # ============================
 # UI TABS
 # ============================
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Cumulative Players",
     "Team Totals",
     "Game Logs",
     "Coach Tools",
-    "Player Profiles"
+    "Player Profiles",
+    "Roster"
 ])
+
 
 # ---------- TAB 1: CUMULATIVE PLAYERS ----------
 
@@ -884,3 +921,17 @@ with tab5:
         pit_row = pit_row.copy()
         pit_row["Unearned"] = pit_row["R"] - pit_row["ER"]
         st.dataframe(pit_row)
+        
+# ---------- TAB 6: ROSTER ----------
+with tab6:
+    st.header("CT Barons Roster")
+
+    df_roster = pd.DataFrame(ROSTER_DATA)
+    df_roster = df_roster.sort_values("Number")
+
+    st.dataframe(
+        df_roster.style.format({
+            "Number": "{:d}"
+        })
+    )
+
