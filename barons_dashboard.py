@@ -960,7 +960,28 @@ with tab4:
     hit_row = df_hitters[df_hitters["Name"] == player]
     if not hit_row.empty:
         st.markdown("### Hitting Stats")
-        st.dataframe(hit_row)
+
+        # Ensure PA is visible
+        if "PA" not in hit_row.columns:
+            hit_row["PA"] = (
+                hit_row["AB"] +
+                hit_row["BB"] +
+                hit_row["HBP"] +
+                hit_row["SF"]
+            )
+
+        st.dataframe(
+            hit_row[
+                [
+                    "Name", "Pos",
+                    "AB", "H", "2B", "3B", "HR",
+                    "BB", "K", "HBP", "SF", "SB",
+                    "PA",          # <-- ADDED
+                    "AVG", "OBP", "SLG", "OPS",
+                    "wOBA", "K%", "BB%"
+                ]
+            ]
+        )
 
     # Pitching stats
     pit_row = df_pitchers[df_pitchers["Name"] == player]
@@ -968,7 +989,18 @@ with tab4:
         st.markdown("### Pitching Stats")
         pit_row = pit_row.copy()
         pit_row["Unearned"] = pit_row["R"] - pit_row["ER"]
-        st.dataframe(pit_row)
+
+        st.dataframe(
+            pit_row[
+                [
+                    "Name", "Pos",
+                    "IP", "R", "ER", "Unearned",
+                    "SO", "BB_p", "HR_p", "HBP_p",
+                    "ERA", "FIP"
+                ]
+            ]
+        )
+
         
 # ---------- TAB 6: ROSTER ----------
 with tab5:
