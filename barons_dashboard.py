@@ -1000,7 +1000,9 @@ with tab6:
     else:
         st.success("Coach mode active.")
 
-    # ---------------- TEAM RECORD EDITOR ----------------
+    # ============================================================
+    # TEAM RECORD EDITOR
+    # ============================================================
     st.subheader("Team Record")
 
     record = load_team_record()
@@ -1015,8 +1017,89 @@ with tab6:
         save_team_record(wins, losses)
         st.success(f"Record updated to {wins}-{losses}")
 
-    # ---------------- GAME CONTEXT ----------------
-    st.subheader("Game Context")
+    # ============================================================
+    # GAME EDITOR (ALWAYS VISIBLE)
+    # ============================================================
+    st.subheader("Edit a Game (Single Player Line)")
+
+    df_logs = load_logs()
+    if df_logs is None or df_logs.empty:
+        st.info("No logs available.")
+    else:
+        # Select date
+        dates = sorted(df_logs["Date"].unique())
+        sel_date = st.selectbox("Select Date", dates, key="edit_date")
+
+        # Select opponent
+        opps = sorted(df_logs[df_logs["Date"] == sel_date]["Opponent"].unique())
+        sel_opp = st.selectbox("Select Opponent", opps, key="edit_opp")
+
+        # Filter rows for that game
+        game_rows = df_logs[
+            (df_logs["Date"] == sel_date) &
+            (df_logs["Opponent"] == sel_opp)
+        ]
+
+        # Select player
+        players = sorted(game_rows["Player"].unique())
+        sel_player = st.selectbox("Select Player", players, key="edit_player")
+
+        # Select type
+        types = sorted(game_rows[game_rows["Player"] == sel_player]["Type"].unique())
+        sel_type = st.selectbox("Stat Type", types, key="edit_type")
+
+        # Load row
+        row = game_rows[
+            (game_rows["Player"] == sel_player) &
+            (game_rows["Type"] == sel_type)
+        ].iloc[0]
+
+        st.markdown("### Edit Stats")
+
+        if sel_type == "H":
+            AB = st.number_input("AB", min_value=0, value=int(row["AB"]))
+            H = st.number_input("H", min_value=0, value=int(row["H"]))
+            _2B = st.number_input("2B", min_value=0, value=int(row["2B"]))
+            _3B = st.number_input("3B", min_value=0, value=int(row["3B"]))
+            HR = st.number_input("HR", min_value=0, value=int(row["HR"]))
+            BB = st.number_input("BB", min_value=0, value=int(row["BB"]))
+            K = st.number_input("K", min_value=0, value=int(row["K"]))
+            HBP = st.number_input("HBP", min_value=0, value=int(row["HBP"]))
+            SF = st.number_input("SF", min_value=0, value=int(row["SF"]))
+            SB = st.number_input("SB", min_value=0, value=int(row["SB"]))
+
+            if st.button("Save Changes", key="save_hit_edit"):
+                df_logs.loc[row.name, ["AB","H","2B","3B","HR","BB","K","HBP","SF","SB"]] = \
+                    [AB,H,_2B,_3B,HR,BB,K,HBP,SF,SB]
+
+                # Recompute PA
+                df_logs.loc[row.name, "PA"] = AB + BB + HBP + SF
+
+                df_logs.to_csv(MASTER_LOG_FILE, index=False)
+                rebuild_cumulative_from_logs(df_logs)
+                st.success("Hitting line updated.")
+
+        else:  # Pitching
+            IP = st.number_input("IP", min_value=0.0, value=float(row["IP"]))
+            R = st.number_input("R", min_value=0, value=int(row["R"]))
+            ER = st.number_input("ER", min_value=0, value=int(row["ER"]))
+            SO = st.number_input("SO", min_value=0, value=int(row["SO"]))
+            BB_p = st.number_input("BB", min_value=0, value=int(row["BB_p"]))
+            HR_p = st.number_input("HR Allowed", min_value=0, value=int(row["HR_p"]))
+            HBP_p = st.number_input("HBP", min_value=0, value=int(row["HBP_p"]))
+
+            if st.button("Save Changes", key="save_pitch_edit"):
+                df_logs.loc[row.name, ["IP","R","ER","SO","BB_p","HR_p","HBP_p"]] = \
+                    [IP,R,ER,SO,BB_p,HR_p,HBP_p]
+
+                df_logs.to_csv(MASTER_LOG_FILE, index=False)
+                rebuild_cumulative_from_logs(df_logs)
+                st.success("Pitching line updated.")
+
+    # ============================================================
+    # GAME CONTEXT (FOR NEW GAME ENTRY)
+    # ============================================================
+    st.subheader("Game Context (For New Game Entry)")
     with st.form("game_context_form"):
         date = st.text_input("Game date (YYYY-MM-DD)")
         opponent = st.text_input("Opponent")
@@ -1230,75 +1313,6 @@ with tab6:
                 log_pitching(date, opponent, league_game, csv_name, stats)
 
         st.success("Full game box score recorded for all players.")
-
-    # ============================================================
-    # EDIT A SINGLE PLAYER'S GAME LINE (OPTION C)
-    # ============================================================
-    st.subheader("Edit a Single Player's Stat Line")
-
-    df_logs = load_logs()
-    if df_logs is None or df_logs.empty:
-        st.info("No logs available.")
-    else:
-        # Select game
-        dates = sorted(df_logs["Date"].unique())
-        sel_date = st.selectbox("Select Date", dates)
-
-        opps = sorted(df_logs[df_logs["Date"] == sel_date]["Opponent"].unique())
-        sel_opp = st.selectbox("Select Opponent", opps)
-
-        players = sorted(df_logs[(df_logs["Date"] == sel_date) & (df_logs["Opponent"] == sel_opp)]["Player"].unique())
-        sel_player = st.selectbox("Select Player", players)
-
-        types = ["H", "P"]
-        sel_type = st.selectbox("Type", types)
-
-        # Load row
-        row = df_logs[
-            (df_logs["Date"] == sel_date) &
-            (df_logs["Opponent"] == sel_opp) &
-            (df_logs["Player"] == sel_player) &
-            (df_logs["Type"] == sel_type)
-        ].iloc[0]
-
-        st.markdown("### Edit Stats")
-
-        if sel_type == "H":
-            AB = st.number_input("AB", min_value=0, value=int(row["AB"]))
-            H = st.number_input("H", min_value=0, value=int(row["H"]))
-            _2B = st.number_input("2B", min_value=0, value=int(row["2B"]))
-            _3B = st.number_input("3B", min_value=0, value=int(row["3B"]))
-            HR = st.number_input("HR", min_value=0, value=int(row["HR"]))
-            BB = st.number_input("BB", min_value=0, value=int(row["BB"]))
-            K = st.number_input("K", min_value=0, value=int(row["K"]))
-            HBP = st.number_input("HBP", min_value=0, value=int(row["HBP"]))
-            SF = st.number_input("SF", min_value=0, value=int(row["SF"]))
-            SB = st.number_input("SB", min_value=0, value=int(row["SB"]))
-
-            if st.button("Save Changes"):
-                df_logs.loc[row.name, ["AB","H","2B","3B","HR","BB","K","HBP","SF","SB"]] = \
-                    [AB,H,_2B,_3B,HR,BB,K,HBP,SF,SB]
-
-                df_logs.to_csv(MASTER_LOG_FILE, index=False)
-                rebuild_cumulative_from_logs(df_logs)
-                st.success("Hitting line updated.")
-
-        else:  # Pitching
-            IP = st.number_input("IP", min_value=0.0, value=float(row["IP"]))
-            R = st.number_input("R", min_value=0, value=int(row["R"]))
-            ER = st.number_input("ER", min_value=0, value=int(row["ER"]))
-            SO = st.number_input("SO", min_value=0, value=int(row["SO"]))
-            BB_p = st.number_input("BB", min_value=0, value=int(row["BB_p"]))
-            HR_p = st.number_input("HR Allowed", min_value=0, value=int(row["HR_p"]))
-            HBP_p = st.number_input("HBP", min_value=0, value=int(row["HBP_p"]))
-
-            if st.button("Save Changes"):
-                df_logs.loc[row.name, ["IP","R","ER","SO","BB_p","HR_p","HBP_p"]] = \
-                    [IP,R,ER,SO,BB_p,HR_p,HBP_p]
-
-                df_logs.to_csv(MASTER_LOG_FILE, index=False)
-                rebuild_cumulative_from_logs(df_logs)
-                st.success("Pitching line updated.")
 
     # ============================================================
     # DELETE ENTRY TOOL
