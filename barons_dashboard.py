@@ -1030,9 +1030,9 @@ with tab3:
                 [
                     "Date", "Opponent", "LeagueGame", "Player", "Type",
                     # Hitting
-                    "AB", "H", "2B", "3B", "HR",
+                   "PA", "AB", "H", "2B", "3B", "HR",
                     "BB", "K", "HBP", "SF", "SB",
-                    "PA",
+                    
                     # Pitching
                     "IP", "R", "ER", "SO",
                     "BB_p", "HR_p", "HBP_p"
