@@ -788,13 +788,14 @@ ROSTER_DATA = [
 # UI TABS
 # ============================
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Cumulative Players",
     "Team Totals",
     "Game Logs",
     "Player Profiles",
     "Roster",
     "Coach Tools",
+    "Team Calendar",
 ])
 
 
@@ -1473,3 +1474,12 @@ with tab6:
             rebuild_cumulative_from_logs(df_logs)
 
             st.success("Entry removed and stats recalculated.")
+
+# ---------- TAB 7: TEAM CALENDAR ----------
+with tab7:
+    st.header("Team Calendar")
+
+    EMBED_URL = "https://calendar.google.com/calendar/embed?src=ac16d5a59cd0ddef373439ba781cf326390b134ef8f52790edb33f57e92c6e7b%40group.calendar.google.com&ctz=America%2FNew_York"
+
+    st.components.v1.iframe(EMBED_URL, width=800, height=600)
+
