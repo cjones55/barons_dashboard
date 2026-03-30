@@ -101,6 +101,10 @@ def html_to_pdf_download_button(html_content, filename="game_report.pdf"):
     b64 = base64.b64encode(html_content.encode()).decode()
     href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}">📄 Download Game Report PDF</a>'
     st.markdown(href, unsafe_allow_html=True)
+    
+    # Run cleaner BEFORE anything else touches the log
+    clean_master_log()
+
 
 
 # ============================
@@ -607,7 +611,12 @@ def log_pitching(date, opponent, league_game, player_name, stats):
 def load_logs():
     if not os.path.exists(MASTER_LOG_FILE):
         return None
-    return pd.read_csv(MASTER_LOG_FILE)
+
+    try:
+        return pd.read_csv(MASTER_LOG_FILE)
+    except Exception:
+        return pd.read_csv(MASTER_LOG_FILE, on_bad_lines="skip", engine="python")
+
 
 
 # ============================
