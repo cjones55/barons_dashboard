@@ -294,7 +294,17 @@ def compute_team_hitting_totals(df, league_filter=None):
     if df.empty:
         return None
 
-    agg = df[["AB", "H", "2B", "3B", "HR", "BB", "K", "HBP", "SF", "SB", "PA"]].sum()
+    # Ensure PA exists (older logs won't have it)
+    if "PA" not in df.columns:
+        df["PA"] = df["AB"] + df["BB"] + df["HBP"] + df["SF"]
+
+    # Ensure all required columns exist
+    required_cols = ["AB","H","2B","3B","HR","BB","K","HBP","SF","SB","PA"]
+    for col in required_cols:
+        if col not in df.columns:
+            df[col] = 0
+
+    agg = df[required_cols].sum()
 
     AB = agg["AB"]
     H = agg["H"]
@@ -324,8 +334,7 @@ def compute_team_hitting_totals(df, league_filter=None):
         1.578 * _3B +
         2.031 * HR
     )
-    woba_den = PA
-    wOBA = woba_num / woba_den if woba_den > 0 else 0
+    wOBA = woba_num / PA if PA > 0 else 0
 
     K_pct = K / PA if PA > 0 else 0
     BB_pct = BB / PA if PA > 0 else 0
@@ -350,6 +359,7 @@ def compute_team_hitting_totals(df, league_filter=None):
         "K%": K_pct,
         "BB%": BB_pct
     }
+
 
 
 
