@@ -943,13 +943,26 @@ with tab3:
         st.info("No game logs yet.")
     else:
 
+        # -------------------------
+        # NORMALIZE LOGS
+        # -------------------------
+
+        # Normalize Type so pitching rows show up
+        df_logs["Type"] = (
+            df_logs["Type"]
+            .astype(str)
+            .str.upper()
+            .str.strip()
+            .replace({"PITCHING": "P", "HITTING": "H"})
+        )
+
         # Ensure PA exists for hitters
         if "PA" not in df_logs.columns:
             df_logs["PA"] = (
-                df_logs["AB"] +
-                df_logs["BB"] +
-                df_logs["HBP"] +
-                df_logs["SF"]
+                df_logs["AB"].fillna(0) +
+                df_logs["BB"].fillna(0) +
+                df_logs["HBP"].fillna(0) +
+                df_logs["SF"].fillna(0)
             )
 
         # Ensure pitching columns exist
@@ -957,6 +970,9 @@ with tab3:
             if col not in df_logs.columns:
                 df_logs[col] = 0
 
+        # -------------------------
+        # FILTER UI
+        # -------------------------
         colf1, colf2, colf3 = st.columns(3)
 
         with colf1:
@@ -985,7 +1001,9 @@ with tab3:
         # Sort
         df_view = df_view.sort_values(["Date", "Player", "Type"])
 
-        # Display clean table
+        # -------------------------
+        # DISPLAY TABLE
+        # -------------------------
         st.dataframe(
             df_view[
                 [
@@ -993,14 +1011,13 @@ with tab3:
                     # Hitting
                     "AB", "H", "2B", "3B", "HR",
                     "BB", "K", "HBP", "SF", "SB",
-                    "PA",     # <-- ADDED
+                    "PA",
                     # Pitching
                     "IP", "R", "ER", "SO",
                     "BB_p", "HR_p", "HBP_p"
                 ]
             ]
         )
-
 
 
 
