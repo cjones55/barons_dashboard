@@ -831,6 +831,34 @@ with tab2:
     if df_logs is None or df_logs.empty:
         st.info("No game logs yet.")
     else:
+
+        # -------------------------
+        # NORMALIZE LOGS
+        # -------------------------
+
+        # Ensure PA exists for hitters
+        if "PA" not in df_logs.columns:
+            df_logs["PA"] = (
+                df_logs["AB"].fillna(0) +
+                df_logs["BB"].fillna(0) +
+                df_logs["HBP"].fillna(0) +
+                df_logs["SF"].fillna(0)
+            )
+
+        # Ensure pitching columns exist
+        for col in ["BB_p", "HR_p", "HBP_p"]:
+            if col not in df_logs.columns:
+                df_logs[col] = 0
+
+        # Normalize Type
+        df_logs["Type"] = df_logs["Type"].astype(str).str.upper().str.strip()
+
+        # Normalize LeagueGame
+        df_logs["LeagueGame"] = df_logs["LeagueGame"].astype(int)
+
+        # -------------------------
+        # FILTER UI
+        # -------------------------
         mode = st.radio(
             "Scope",
             ["Overall", "League games only", "Non-league games only"],
@@ -844,7 +872,9 @@ with tab2:
         else:
             league_filter = False
 
-        # Compute totals
+        # -------------------------
+        # COMPUTE TOTALS
+        # -------------------------
         hit_totals = compute_team_hitting_totals(df_logs, league_filter)
         pit_totals = compute_team_pitching_totals(df_logs, league_filter)
 
@@ -912,6 +942,21 @@ with tab3:
     if df_logs is None or df_logs.empty:
         st.info("No game logs yet.")
     else:
+
+        # Ensure PA exists for hitters
+        if "PA" not in df_logs.columns:
+            df_logs["PA"] = (
+                df_logs["AB"] +
+                df_logs["BB"] +
+                df_logs["HBP"] +
+                df_logs["SF"]
+            )
+
+        # Ensure pitching columns exist
+        for col in ["BB_p", "HR_p", "HBP_p"]:
+            if col not in df_logs.columns:
+                df_logs[col] = 0
+
         colf1, colf2, colf3 = st.columns(3)
 
         with colf1:
@@ -927,6 +972,7 @@ with tab3:
 
         df_view = df_logs.copy()
 
+        # Filters
         if player_sel != "All":
             df_view = df_view[df_view["Player"] == player_sel]
         if opp_sel != "All":
@@ -936,8 +982,24 @@ with tab3:
         elif lg_mode == "Non-league only":
             df_view = df_view[df_view["LeagueGame"] == 0]
 
-        df_view = df_view.sort_values(["Date", "Player"])
-        st.dataframe(df_view)
+        # Sort
+        df_view = df_view.sort_values(["Date", "Player", "Type"])
+
+        # Display clean table
+        st.dataframe(
+            df_view[
+                [
+                    "Date", "Opponent", "LeagueGame", "Player", "Type",
+                    # Hitting
+                    "AB", "H", "2B", "3B", "HR",
+                    "BB", "K", "HBP", "SF", "SB",
+                    "PA",     # <-- ADDED
+                    # Pitching
+                    "IP", "R", "ER", "SO",
+                    "BB_p", "HR_p", "HBP_p"
+                ]
+            ]
+        )
 
 
 
@@ -974,9 +1036,9 @@ with tab4:
             hit_row[
                 [
                     "Name", "Pos",
-                    "AB", "H", "2B", "3B", "HR",
+                    "PA", "AB", "H", "2B", "3B", "HR",
                     "BB", "K", "HBP", "SF", "SB",
-                    "PA",          # <-- ADDED
+                            # <-- ADDED
                     "AVG", "OBP", "SLG", "OPS",
                     "wOBA", "K%", "BB%"
                 ]
