@@ -122,6 +122,33 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 
 
+def clean_master_log():
+    if not os.path.exists(MASTER_LOG_FILE):
+        return
+
+    # Step 1 — read file even if malformed
+    df = pd.read_csv(MASTER_LOG_FILE, on_bad_lines="skip", engine="python")
+
+    # Step 2 — unify column schema
+    required_cols = [
+        "Date", "Opponent", "LeagueGame", "Player", "Type",
+        # Hitting
+        "AB", "H", "2B", "3B", "HR", "BB", "K", "HBP", "SF", "SB",
+        # Pitching
+        "IP", "R", "ER", "SO", "BB_p", "HR_p", "HBP_p",
+    ]
+
+    # Add any missing columns
+    for col in required_cols:
+        if col not in df.columns:
+            df[col] = 0
+
+    # Step 3 — drop any extra garbage columns
+    df = df[required_cols]
+
+    # Step 4 — rewrite clean file
+    df.to_csv(MASTER_LOG_FILE, index=False)
+
 
 # ============================
 # TEAM RECORD HELPERS
