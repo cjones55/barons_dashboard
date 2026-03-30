@@ -136,10 +136,15 @@ def clean_master_log():
     # Step 2 — unify column schema
     required_cols = [
         "Date", "Opponent", "LeagueGame", "Player", "Type",
+
         # Hitting
-        "AB", "H", "2B", "3B", "HR", "BB", "K", "HBP", "SF", "SB",
+        "AB", "H", "2B", "3B", "HR",
+        "BB", "K", "HBP", "SF", "SB",
+        "PA",   # <-- ADDED PA
+
         # Pitching
-        "IP", "R", "ER", "SO", "BB_p", "HR_p", "HBP_p",
+        "IP", "R", "ER", "SO",
+        "BB_p", "HR_p", "HBP_p",
     ]
 
     # Add any missing columns
@@ -152,6 +157,7 @@ def clean_master_log():
 
     # Step 4 — rewrite clean file
     df.to_csv(MASTER_LOG_FILE, index=False)
+
 
 
 # ============================
@@ -288,7 +294,7 @@ def compute_team_hitting_totals(df, league_filter=None):
     if df.empty:
         return None
 
-    agg = df[["AB", "H", "2B", "3B", "HR", "BB", "K", "HBP", "SF", "SB"]].sum()
+    agg = df[["AB", "H", "2B", "3B", "HR", "BB", "K", "HBP", "SF", "SB", "PA"]].sum()
 
     AB = agg["AB"]
     H = agg["H"]
@@ -300,11 +306,10 @@ def compute_team_hitting_totals(df, league_filter=None):
     HBP = agg["HBP"]
     SF = agg["SF"]
     SB = agg["SB"]
-
-    PA = AB + BB + HBP + SF
+    PA = agg["PA"]
 
     AVG = H / AB if AB > 0 else 0
-    OBP = (H + BB + HBP) / (AB + BB + HBP + SF) if (AB + BB + HBP + SF) > 0 else 0
+    OBP = (H + BB + HBP) / PA if PA > 0 else 0
 
     singles = H - _2B - _3B - HR
     TB = singles + 2*_2B + 3*_3B + 4*HR
@@ -319,7 +324,7 @@ def compute_team_hitting_totals(df, league_filter=None):
         1.578 * _3B +
         2.031 * HR
     )
-    woba_den = AB + BB + HBP + SF
+    woba_den = PA
     wOBA = woba_num / woba_den if woba_den > 0 else 0
 
     K_pct = K / PA if PA > 0 else 0
@@ -336,6 +341,7 @@ def compute_team_hitting_totals(df, league_filter=None):
         "HBP": HBP,
         "SF": SF,
         "SB": SB,
+        "PA": PA,
         "AVG": AVG,
         "OBP": OBP,
         "SLG": SLG,
@@ -344,6 +350,7 @@ def compute_team_hitting_totals(df, league_filter=None):
         "K%": K_pct,
         "BB%": BB_pct
     }
+
 
 
 def ensure_cumulative_exists():
@@ -362,6 +369,7 @@ def ensure_cumulative_exists():
             "Pos": base_pos,
             "AB": 0, "H": 0, "2B": 0, "3B": 0, "HR": 0,
             "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0,
+            "PA": 0,   # <-- ADDED
             "AVG": 0.0, "OBP": 0.0, "SLG": 0.0, "OPS": 0.0,
             "wOBA": 0.0, "K%": 0.0, "BB%": 0.0,
         })
@@ -378,6 +386,7 @@ def ensure_cumulative_exists():
     df_pitchers = pd.DataFrame(pitcher_rows).drop_duplicates(subset=["Name"])
 
     save_cumulative(df_hitters, df_pitchers)
+
 
 
 def load_cumulative():
@@ -445,16 +454,25 @@ def recompute_hitting_metrics(df):
     HBP = df["HBP"]
     SF = df["SF"]
 
-    PA = AB + BB + HBP + SF
+    # Compute PA and store it
+    df["PA"] = AB + BB + HBP + SF
+    PA = df["PA"]
 
+    # AVG
     df["AVG"] = H / AB.replace(0, pd.NA)
-    df["OBP"] = (H + BB + HBP) / (AB + BB + HBP + SF).replace(0, pd.NA)
 
+    # OBP uses PA
+    df["OBP"] = (H + BB + HBP) / PA.replace(0, pd.NA)
+
+    # SLG
     singles = H - _2B - _3B - HR
     TB = singles + 2*_2B + 3*_3B + 4*HR
     df["SLG"] = TB / AB.replace(0, pd.NA)
+
+    # OPS
     df["OPS"] = df["OBP"] + df["SLG"]
 
+    # wOBA (correct denominator = PA)
     woba_num = (
         0.69 * BB +
         0.72 * HBP +
@@ -463,13 +481,14 @@ def recompute_hitting_metrics(df):
         1.578 * _3B +
         2.031 * HR
     )
-    woba_den = AB + BB + HBP + SF
-    df["wOBA"] = woba_num / woba_den.replace(0, pd.NA)
+    df["wOBA"] = woba_num / PA.replace(0, pd.NA)
 
+    # Rates
     df["K%"] = K / PA.replace(0, pd.NA)
     df["BB%"] = BB / PA.replace(0, pd.NA)
 
     return df.fillna(0.0)
+
 
 
 def recompute_pitching_metrics(df):
@@ -500,18 +519,31 @@ def update_hitter_cumulative(player_name, stats):
             "Pos": pos,
             "AB": 0, "H": 0, "2B": 0, "3B": 0, "HR": 0,
             "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0,
+            "PA": 0,   # <-- ADDED
             "AVG": 0.0, "OBP": 0.0, "SLG": 0.0, "OPS": 0.0,
             "wOBA": 0.0, "K%": 0.0, "BB%": 0.0,
         }
         df_hitters = pd.concat([df_hitters, pd.DataFrame([new_row])], ignore_index=True)
         mask = df_hitters["Name"] == player_name
 
+    # Add raw counting stats
     for col in stats:
         df_hitters.loc[mask, col] += stats[col]
 
+    # Add PA from this game
+    df_hitters.loc[mask, "PA"] += (
+        stats.get("AB", 0)
+        + stats.get("BB", 0)
+        + stats.get("HBP", 0)
+        + stats.get("SF", 0)
+    )
+
+    # Recompute all metrics (including authoritative PA)
     df_hitters = recompute_hitting_metrics(df_hitters)
     df_pitchers = recompute_pitching_metrics(df_pitchers)
+
     save_cumulative(df_hitters, df_pitchers)
+
 
 
 def update_pitcher_cumulative(player_name, stats):
@@ -577,19 +609,41 @@ def append_to_game_file(game_id, row_dict):
 
 
 def log_hitting(date, opponent, league_game, player_name, stats):
+    # Compute PA for this hitting line
+    PA = (
+        stats.get("AB", 0)
+        + stats.get("BB", 0)
+        + stats.get("HBP", 0)
+        + stats.get("SF", 0)
+    )
+
     row = {
         "Date": date,
         "Opponent": opponent,
         "LeagueGame": 1 if league_game else 0,
         "Player": player_name,
         "Type": "H",
+
+        # Hitting stats from the form
         **stats,
-        "IP": 0.0, "R": 0, "ER": 0, "SO": 0,
-        "BB_p": 0, "HR_p": 0, "HBP_p": 0,
+
+        # Add PA
+        "PA": PA,
+
+        # Pitching placeholders
+        "IP": 0.0,
+        "R": 0,
+        "ER": 0,
+        "SO": 0,
+        "BB_p": 0,
+        "HR_p": 0,
+        "HBP_p": 0,
     }
+
     game_id = f"{date}_{opponent.replace(' ', '_')}"
     append_to_master_log(row)
     append_to_game_file(game_id, row)
+
 
 
 def log_pitching(date, opponent, league_game, player_name, stats):
@@ -633,18 +687,32 @@ def rebuild_cumulative_from_logs(df_logs):
     for _, row in df_logs.iterrows():
         if row["Type"] == "H":
             stats = {
-                "AB": row["AB"], "H": row["H"], "2B": row["2B"], "3B": row["3B"],
-                "HR": row["HR"], "BB": row["BB"], "K": row["K"],
-                "HBP": row["HBP"], "SF": row["SF"], "SB": row["SB"],
+                "AB": row["AB"],
+                "H": row["H"],
+                "2B": row["2B"],
+                "3B": row["3B"],
+                "HR": row["HR"],
+                "BB": row["BB"],
+                "K": row["K"],
+                "HBP": row["HBP"],
+                "SF": row["SF"],
+                "SB": row["SB"],
+                "PA": row["PA"],   # <-- ADDED PA
             }
             update_hitter_cumulative(row["Player"], stats)
-        else:
+
+        else:  # Pitching
             stats = {
-                "IP": row["IP"], "R": row["R"], "ER": row["ER"],
-                "SO": row["SO"], "BB_p": row["BB_p"], "HR_p": row["HR_p"],
+                "IP": row["IP"],
+                "R": row["R"],
+                "ER": row["ER"],
+                "SO": row["SO"],
+                "BB_p": row["BB_p"],
+                "HR_p": row["HR_p"],
                 "HBP_p": row.get("HBP_p", 0),
             }
             update_pitcher_cumulative(row["Player"], stats)
+
 
 
 
@@ -766,6 +834,7 @@ with tab2:
         else:
             league_filter = False
 
+        # Compute totals
         hit_totals = compute_team_hitting_totals(df_logs, league_filter)
         pit_totals = compute_team_pitching_totals(df_logs, league_filter)
 
@@ -774,39 +843,53 @@ with tab2:
         else:
             c1, c2 = st.columns(2)
 
-            # Hitting totals
+            # -------------------------
+            # HITTING TOTALS
+            # -------------------------
             with c1:
                 st.subheader("Hitting")
+
                 if hit_totals:
                     ht = hit_totals
+
                     st.metric("AVG", f"{ht['AVG']:.3f}")
                     st.metric("OBP", f"{ht['OBP']:.3f}")
                     st.metric("SLG", f"{ht['SLG']:.3f}")
                     st.metric("OPS", f"{ht['OPS']:.3f}")
                     st.metric("wOBA", f"{ht['wOBA']:.3f}")
+
                     st.write(
-                        f"AB: {ht['AB']}, H: {ht['H']}, 2B: {ht['2B']}, 3B: {ht['3B']}, HR: {ht['HR']}"
+                        f"AB: {ht['AB']}, H: {ht['H']}, 2B: {ht['2B']}, "
+                        f"3B: {ht['3B']}, HR: {ht['HR']}"
                     )
                     st.write(
-                        f"BB: {ht['BB']}, K: {ht['K']}, HBP: {ht['HBP']}, SF: {ht['SF']}, SB: {ht['SB']}"
+                        f"BB: {ht['BB']}, K: {ht['K']}, HBP: {ht['HBP']}, "
+                        f"SF: {ht['SF']}, SB: {ht['SB']}, PA: {ht['PA']}"
                     )
                     st.write(
                         f"K%: {ht['K%']*100:.1f}%, BB%: {ht['BB%']*100:.1f}%"
                     )
 
-            # Pitching totals
+            # -------------------------
+            # PITCHING TOTALS
+            # -------------------------
             with c2:
                 st.subheader("Pitching")
+
                 if pit_totals:
                     pt = pit_totals
+
                     st.metric("ERA", f"{pt['ERA']:.3f}")
                     st.metric("FIP", f"{pt['FIP']:.3f}")
+
                     st.write(
-                        f"IP: {pt['IP']:.1f}, R: {pt['R']}, ER: {pt['ER']}, Unearned: {pt['Unearned']}"
+                        f"IP: {pt['IP']:.1f}, R: {pt['R']}, ER: {pt['ER']}, "
+                        f"Unearned: {pt['Unearned']}"
                     )
                     st.write(
                         f"SO: {pt['SO']}, BB: {pt['BB']}, HR: {pt['HR']}"
                     )
+
 
 
 
@@ -941,7 +1024,7 @@ with tab6:
     # ============================================================
     st.subheader("Lineup Builder")
 
-    num_hitters = st.selectbox("Number of hitters in lineup:", [9, 10, 11, 12], index=0)
+    num_hitters = st.selectbox("Number of hitters in lineup:", list(range(9, 21)), index=0)
 
     st.markdown("### Starting Lineup (Batting Order)")
     lineup = []
@@ -1012,7 +1095,7 @@ with tab6:
         })
 
     # ============================================================
-    # FULL GAME BOX SCORE ENTRY
+    # FULL GAME BOX SCORE ENTRY (UP TO 20 HITTERS)
     # ============================================================
     st.subheader("Full Game Box Score Entry")
 
@@ -1138,74 +1221,96 @@ with tab6:
 
         st.success("Full game box score recorded for all players.")
 
-        # ============================================================
-        # GAME REPORT PDF
-        # ============================================================
-        st.subheader("Game Report")
+    # ============================================================
+    # EDIT A SINGLE PLAYER'S GAME LINE (OPTION C)
+    # ============================================================
+    st.subheader("Edit a Single Player's Stat Line")
 
-        # Build HTML
-        html = f"""
-        <html>
-        <body style="font-family:Arial;">
+    df_logs = load_logs()
+    if df_logs is None or df_logs.empty:
+        st.info("No logs available.")
+    else:
+        # Select game
+        dates = sorted(df_logs["Date"].unique())
+        sel_date = st.selectbox("Select Date", dates)
 
-        <div style="text-align:center;">
-            <img src="barons_logo.png" width="120">
-            <h1>CT Barons Game Report</h1>
-            <h3>{date} vs {opponent}</h3>
-            <h4>{'League Game' if league_game else 'Non-League Game'}</h4>
-        </div>
+        opps = sorted(df_logs[df_logs["Date"] == sel_date]["Opponent"].unique())
+        sel_opp = st.selectbox("Select Opponent", opps)
 
-        <h2>Starting Lineup</h2>
-        <ul>
-        {''.join([f"<li>{entry['order']}. {entry['player']} — {entry['position']}</li>" for entry in lineup])}
-        </ul>
+        players = sorted(df_logs[(df_logs["Date"] == sel_date) & (df_logs["Opponent"] == sel_opp)]["Player"].unique())
+        sel_player = st.selectbox("Select Player", players)
 
-        <h2>Substitutions</h2>
-        <ul>
-        {''.join([f"<li>{s['in']} entered for {s['out']} in inning {s['inning']} (new position: {s['position']})</li>" for s in subs]) or '<li>No substitutions</li>'}
-        </ul>
+        types = ["H", "P"]
+        sel_type = st.selectbox("Type", types)
 
-        <h2>Pinch Hitters</h2>
-        <ul>
-        {''.join([f"<li>{ph['ph']} pinch-hit for {ph['for']} in inning {ph['inning']}</li>" for ph in pinch_hits]) or '<li>No pinch hitters</li>'}
-        </ul>
+        # Load row
+        row = df_logs[
+            (df_logs["Date"] == sel_date) &
+            (df_logs["Opponent"] == sel_opp) &
+            (df_logs["Player"] == sel_player) &
+            (df_logs["Type"] == sel_type)
+        ].iloc[0]
 
-        <h2>Hitting Lines</h2>
-        {pd.DataFrame(hit_inputs).T.to_html()}
+        st.markdown("### Edit Stats")
 
-        <h2>Pitching Lines</h2>
-        {pd.DataFrame(pit_inputs).T.to_html()}
+        if sel_type == "H":
+            AB = st.number_input("AB", min_value=0, value=int(row["AB"]))
+            H = st.number_input("H", min_value=0, value=int(row["H"]))
+            _2B = st.number_input("2B", min_value=0, value=int(row["2B"]))
+            _3B = st.number_input("3B", min_value=0, value=int(row["3B"]))
+            HR = st.number_input("HR", min_value=0, value=int(row["HR"]))
+            BB = st.number_input("BB", min_value=0, value=int(row["BB"]))
+            K = st.number_input("K", min_value=0, value=int(row["K"]))
+            HBP = st.number_input("HBP", min_value=0, value=int(row["HBP"]))
+            SF = st.number_input("SF", min_value=0, value=int(row["SF"]))
+            SB = st.number_input("SB", min_value=0, value=int(row["SB"]))
 
-        </body>
-        </html>
-        """
+            if st.button("Save Changes"):
+                df_logs.loc[row.name, ["AB","H","2B","3B","HR","BB","K","HBP","SF","SB"]] = \
+                    [AB,H,_2B,_3B,HR,BB,K,HBP,SF,SB]
 
-        html_to_pdf_download_button(html, filename=f"Barons_Game_Report_{date}.pdf")
-
-
-
-
-
-
-        # Admin delete tool
-        st.subheader("Admin: Remove a Stat Entry")
-
-        df_logs = load_logs()
-        if df_logs is None or df_logs.empty:
-            st.info("No logs to edit.")
-        else:
-            df_logs["Label"] = df_logs.apply(
-                lambda r: f"{r['Date']} vs {r['Opponent']} — {r['Player']} ({r['Type']})",
-                axis=1
-            )
-
-            entry = st.selectbox("Select entry to remove", df_logs["Label"])
-
-            if st.button("Remove Selected Entry"):
-                idx = df_logs[df_logs["Label"] == entry].index[0]
-                df_logs = df_logs.drop(idx)
                 df_logs.to_csv(MASTER_LOG_FILE, index=False)
-
                 rebuild_cumulative_from_logs(df_logs)
+                st.success("Hitting line updated.")
 
-                st.success("Entry removed and stats recalculated.")
+        else:  # Pitching
+            IP = st.number_input("IP", min_value=0.0, value=float(row["IP"]))
+            R = st.number_input("R", min_value=0, value=int(row["R"]))
+            ER = st.number_input("ER", min_value=0, value=int(row["ER"]))
+            SO = st.number_input("SO", min_value=0, value=int(row["SO"]))
+            BB_p = st.number_input("BB", min_value=0, value=int(row["BB_p"]))
+            HR_p = st.number_input("HR Allowed", min_value=0, value=int(row["HR_p"]))
+            HBP_p = st.number_input("HBP", min_value=0, value=int(row["HBP_p"]))
+
+            if st.button("Save Changes"):
+                df_logs.loc[row.name, ["IP","R","ER","SO","BB_p","HR_p","HBP_p"]] = \
+                    [IP,R,ER,SO,BB_p,HR_p,HBP_p]
+
+                df_logs.to_csv(MASTER_LOG_FILE, index=False)
+                rebuild_cumulative_from_logs(df_logs)
+                st.success("Pitching line updated.")
+
+    # ============================================================
+    # DELETE ENTRY TOOL
+    # ============================================================
+    st.subheader("Remove a Stat Entry")
+
+    df_logs = load_logs()
+    if df_logs is None or df_logs.empty:
+        st.info("No logs to edit.")
+    else:
+        df_logs["Label"] = df_logs.apply(
+            lambda r: f"{r['Date']} vs {r['Opponent']} — {r['Player']} ({r['Type']})",
+            axis=1
+        )
+
+        entry = st.selectbox("Select entry to remove", df_logs["Label"])
+
+        if st.button("Remove Selected Entry"):
+            idx = df_logs[df_logs["Label"] == entry].index[0]
+            df_logs = df_logs.drop(idx)
+            df_logs.to_csv(MASTER_LOG_FILE, index=False)
+
+            rebuild_cumulative_from_logs(df_logs)
+
+            st.success("Entry removed and stats recalculated.")
