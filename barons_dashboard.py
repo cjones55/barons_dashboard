@@ -820,10 +820,10 @@ with tab5:
     )
 
 # ---------- TAB 4: COACH TOOLS ----------
-
 with tab6:
     st.header("Coach Tools (Password Protected)")
 
+    # ---------------- AUTH ----------------
     if not st.session_state.authenticated:
         pwd = st.text_input("Enter coach password:", type="password")
         if st.button("Unlock"):
@@ -834,7 +834,7 @@ with tab6:
                 st.error("Incorrect password.")
     else:
         st.success("Coach mode active.")
-        
+
         # ---------------- TEAM RECORD EDITOR ----------------
         st.subheader("Team Record")
 
@@ -843,14 +843,14 @@ with tab6:
         col_w, col_l = st.columns(2)
         with col_w:
             wins = st.number_input("Wins", min_value=0, value=record["Wins"], step=1)
-            with col_l:
-                losses = st.number_input("Losses", min_value=0, value=record["Losses"], step=1)
+        with col_l:
+            losses = st.number_input("Losses", min_value=0, value=record["Losses"], step=1)
 
         if st.button("Save Team Record"):
             save_team_record(wins, losses)
             st.success(f"Record updated to {wins}-{losses}")
 
-
+        # ---------------- GAME CONTEXT ----------------
         st.subheader("Game Context")
         with st.form("game_context_form"):
             date = st.text_input("Game date (YYYY-MM-DD)")
@@ -860,124 +860,144 @@ with tab6:
 
         if not date or not opponent:
             st.info("Set game context above to enable stat entry.")
-        else:
-            st.write(f"Current game: **{date} vs {opponent}** ({'League' if league_game else 'Non-league'})")
+            st.stop()
 
-            st.subheader("Enter Player Stats")
+        st.write(f"Current game: **{date} vs {opponent}** ({'League' if league_game else 'Non-league'})")
 
-            colh, colp = st.columns(2)
+        # ============================================================
+        # FULL GAME BOX SCORE ENTRY
+        # ============================================================
+        st.subheader("Full Game Box Score Entry")
 
-            # Hitting form
-            with colh:
-                st.markdown("### Hitting Stats")
-                with st.form("hitting_form"):
-                    player_disp = st.selectbox("Hitter", sorted(PLAYERS.keys()))
-                    AB = st.number_input("AB", min_value=0, step=1)
-                    H = st.number_input("H", min_value=0, step=1)
-                    _2B = st.number_input("2B", min_value=0, step=1)
-                    _3B = st.number_input("3B", min_value=0, step=1)
-                    HR = st.number_input("HR", min_value=0, step=1)
-                    BB = st.number_input("BB", min_value=0, step=1)
-                    K = st.number_input("K", min_value=0, step=1)
-                    HBP = st.number_input("HBP", min_value=0, step=1)
-                    SF = st.number_input("SF", min_value=0, step=1)
-                    SB = st.number_input("SB", min_value=0, step=1)
-                    submit_hit = st.form_submit_button("Submit Hitting Stats")
+        # Select number of hitters
+        num_hitters = st.selectbox(
+            "How many hitters appeared this game?",
+            [9, 10, 11, 12],
+            index=0
+        )
 
-                if submit_hit:
-                    csv_name = DISPLAY_TO_CSV_NAME.get(player_disp, player_disp)
-                    stats = {
-                        "AB": int(AB), "H": int(H), "2B": int(_2B), "3B": int(_3B),
-                        "HR": int(HR), "BB": int(BB), "K": int(K),
-                        "HBP": int(HBP), "SF": int(SF), "SB": int(SB),
-                    }
+        # Select hitters
+        st.markdown("### Select Hitters for This Game")
+        selected_hitters = st.multiselect(
+            "Choose hitters (in batting order):",
+            sorted(PLAYERS.keys()),
+            max_selections=num_hitters
+        )
+
+        if len(selected_hitters) != num_hitters:
+            st.warning(f"Select exactly {num_hitters} hitters to continue.")
+            st.stop()
+
+        # Select pitchers
+        st.markdown("### Select Pitchers for This Game")
+        selected_pitchers = st.multiselect(
+            "Choose pitchers:",
+            sorted(PLAYERS.keys()),
+        )
+
+        # ---------------- FULL BOX SCORE FORM ----------------
+        with st.form("full_game_box_score"):
+
+            # ---------------- HITTING ----------------
+            st.write("## Hitting Box Score")
+
+            hit_inputs = {}
+            for player in selected_hitters:
+                st.markdown(f"**{player}**")
+                c1, c2, c3, c4, c5, c6 = st.columns(6)
+                with c1:
+                    AB = st.number_input(f"AB ({player})", min_value=0, step=1, key=f"AB_{player}")
+                with c2:
+                    H = st.number_input(f"H ({player})", min_value=0, step=1, key=f"H_{player}")
+                with c3:
+                    _2B = st.number_input(f"2B ({player})", min_value=0, step=1, key=f"2B_{player}")
+                with c4:
+                    _3B = st.number_input(f"3B ({player})", min_value=0, step=1, key=f"3B_{player}")
+                with c5:
+                    HR = st.number_input(f"HR ({player})", min_value=0, step=1, key=f"HR_{player}")
+                with c6:
+                    BB = st.number_input(f"BB ({player})", min_value=0, step=1, key=f"BB_{player}")
+
+                c7, c8, c9, c10 = st.columns(4)
+                with c7:
+                    K = st.number_input(f"K ({player})", min_value=0, step=1, key=f"K_{player}")
+                with c8:
+                    HBP = st.number_input(f"HBP ({player})", min_value=0, step=1, key=f"HBP_{player}")
+                with c9:
+                    SF = st.number_input(f"SF ({player})", min_value=0, step=1, key=f"SF_{player}")
+                with c10:
+                    SB = st.number_input(f"SB ({player})", min_value=0, step=1, key=f"SB_{player}")
+
+                hit_inputs[player] = {
+                    "AB": AB, "H": H, "2B": _2B, "3B": _3B, "HR": HR,
+                    "BB": BB, "K": K, "HBP": HBP, "SF": SF, "SB": SB
+                }
+
+            st.write("---")
+
+            # ---------------- PITCHING ----------------
+            st.write("## Pitching Box Score")
+
+            pit_inputs = {}
+            for player in selected_pitchers:
+                st.markdown(f"**{player}**")
+
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
+                    IP = st.number_input(f"IP ({player})", min_value=0.0, step=0.1, key=f"IP_{player}")
+                with c2:
+                    R = st.number_input(f"R ({player})", min_value=0, step=1, key=f"R_{player}")
+                with c3:
+                    ER = st.number_input(f"ER ({player})", min_value=0, step=1, key=f"ER_{player}")
+                with c4:
+                    BB_p = st.number_input(f"BB ({player})", min_value=0, step=1, key=f"BBp_{player}")
+
+                c5, c6, c7, c8 = st.columns(4)
+                with c5:
+                    SO = st.number_input(f"K ({player})", min_value=0, step=1, key=f"SO_{player}")
+                with c6:
+                    HR_p = st.number_input(f"HR Allowed ({player})", min_value=0, step=1, key=f"HRp_{player}")
+                with c7:
+                    HBP_p = st.number_input(f"HBP ({player})", min_value=0, step=1, key=f"HBPp_{player}")
+                with c8:
+                    GS = st.number_input(f"GS ({player})", min_value=0, max_value=1, step=1, key=f"GS_{player}")
+
+                c9, c10, c11 = st.columns(3)
+                with c9:
+                    W = st.number_input(f"W ({player})", min_value=0, max_value=1, step=1, key=f"W_{player}")
+                with c10:
+                    L = st.number_input(f"L ({player})", min_value=0, max_value=1, step=1, key=f"L_{player}")
+                with c11:
+                    SV = st.number_input(f"SV ({player})", min_value=0, max_value=1, step=1, key=f"SV_{player}")
+
+                pit_inputs[player] = {
+                    "IP": IP, "R": R, "ER": ER, "SO": SO,
+                    "BB_p": BB_p, "HR_p": HR_p, "HBP_p": HBP_p,
+                    "GS": GS, "W": W, "L": L, "SV": SV
+                }
+
+            submit_full = st.form_submit_button("Submit Full Game Box Score")
+
+        # ---------------- SUBMISSION LOGIC ----------------
+        if submit_full:
+            # Hitting
+            for player, stats in hit_inputs.items():
+                if sum(stats.values()) > 0:
+                    csv_name = DISPLAY_TO_CSV_NAME.get(player, player)
                     update_hitter_cumulative(csv_name, stats)
                     log_hitting(date, opponent, league_game, csv_name, stats)
-                    st.success(f"Hitting stats recorded for {csv_name}.")
 
-            # Pitching form
-            with colp:
-                st.markdown("### Pitching Stats")
-                with st.form("pitching_form"):
-                    player_disp_p = st.selectbox("Pitcher", sorted(PLAYERS.keys()), key="pitcher_select")
-                    IP = st.number_input("IP (e.g., 5.2)", min_value=0.0, step=0.1)
-                    R = st.number_input("R", min_value=0, step=1)
-                    ER = st.number_input("ER", min_value=0, step=1)
-                    SO = st.number_input("SO", min_value=0, step=1)
-                    BB_p = st.number_input("BB", min_value=0, step=1)
-                    HR_p = st.number_input("HR allowed", min_value=0, step=1)
-                    submit_pit = st.form_submit_button("Submit Pitching Stats")
+            # Pitching
+            for player, stats in pit_inputs.items():
+                if stats["IP"] > 0 or stats["R"] > 0 or stats["ER"] > 0:
+                    csv_name = DISPLAY_TO_CSV_NAME.get(player, player)
+                    update_pitcher_cumulative(csv_name, stats)
+                    log_pitching(date, opponent, league_game, csv_name, stats)
 
-                if submit_pit:
-                    csv_name_p = DISPLAY_TO_CSV_NAME.get(player_disp_p, player_disp_p)
-                    stats_p = {
-                        "IP": float(IP), "R": int(R), "ER": int(ER),
-                        "SO": int(SO), "BB_p": int(BB_p), "HR_p": int(HR_p),
-                    }
-                    update_pitcher_cumulative(csv_name_p, stats_p)
-                    log_pitching(date, opponent, league_game, csv_name_p, stats_p)
-                    st.success(f"Pitching stats recorded for {csv_name_p}.")
+            st.success("Full game box score recorded for all players.")
 
-st.subheader("Quick Box Score Entry")
 
-with st.expander("Hitting Box Score"):
-    with st.form("box_hitting"):
-        player = st.selectbox("Player", sorted(PLAYERS.keys()), key="box_hit_player")
-        AB = st.number_input("AB", min_value=0, step=1)
-        R = st.number_input("Runs", min_value=0, step=1)
-        H = st.number_input("Hits", min_value=0, step=1)
-        RBI = st.number_input("RBI", min_value=0, step=1)
-        BB = st.number_input("BB", min_value=0, step=1)
-        K = st.number_input("K", min_value=0, step=1)
-        HBP = st.number_input("HBP", min_value=0, step=1)
-        SB = st.number_input("SB", min_value=0, step=1)
-        submit_box_hit = st.form_submit_button("Submit Hitting Box Score")
 
-    if submit_box_hit:
-        csv_name = DISPLAY_TO_CSV_NAME.get(player, player)
-        stats = {
-            "AB": AB,
-            "H": H,
-            "2B": 0,
-            "3B": 0,
-            "HR": 0,
-            "BB": BB,
-            "K": K,
-            "HBP": HBP,
-            "SF": 0,
-            "SB": SB,
-        }
-        update_hitter_cumulative(csv_name, stats)
-        log_hitting(date, opponent, league_game, csv_name, stats)
-        st.success(f"Box score recorded for {csv_name}.")
-        
-with st.expander("Pitching Box Score"):
-    with st.form("box_pitching"):
-        player_p = st.selectbox("Pitcher", sorted(PLAYERS.keys()), key="box_pitch_player")
-        IP = st.number_input("IP (e.g., 5.2)", min_value=0.0, step=0.1)
-        H_p = st.number_input("Hits Allowed", min_value=0, step=1)
-        R = st.number_input("Runs", min_value=0, step=1)
-        ER = st.number_input("Earned Runs", min_value=0, step=1)
-        BB_p = st.number_input("Walks", min_value=0, step=1)
-        K_p = st.number_input("Strikeouts", min_value=0, step=1)
-        HR_p = st.number_input("HR Allowed", min_value=0, step=1)
-        HBP_p = st.number_input("Hit Batters (HBP)", min_value=0, step=1)
-        submit_box_pit = st.form_submit_button("Submit Pitching Box Score")
-
-    if submit_box_pit:
-        csv_name_p = DISPLAY_TO_CSV_NAME.get(player_p, player_p)
-        stats_p = {
-            "IP": IP,
-            "R": R,
-            "ER": ER,
-            "SO": K_p,
-            "BB_p": BB_p,
-            "HR_p": HR_p,
-            "HBP_p": HBP_p,
-        }
-        update_pitcher_cumulative(csv_name_p, stats_p)
-        log_pitching(date, opponent, league_game, csv_name_p, stats_p)
-        st.success(f"Pitching box score recorded for {csv_name_p}.")
 
 
 
