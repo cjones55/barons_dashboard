@@ -210,19 +210,18 @@ if "authenticated" not in st.session_state:
 # ============================
 # CUMULATIVE STATS HELPERS
 # ============================
+
 def compute_team_pitching_totals(df, league_filter=None):
     if df is None or df.empty:
         return None
 
-    # Filter pitching rows
     df = df[df["Type"] == "P"]
     if league_filter is not None:
         df = df[df["LeagueGame"] == (1 if league_filter else 0)]
     if df.empty:
         return None
 
-    # Aggregate totals
-    agg = df[["IP", "R", "ER", "SO", "BB_p", "HR_p"]].sum()
+    agg = df[["IP", "R", "ER", "SO", "BB_p", "HR_p", "HBP_p"]].sum()
 
     IP = agg["IP"]
     R = agg["R"]
@@ -231,7 +230,6 @@ def compute_team_pitching_totals(df, league_filter=None):
     BB_p = agg["BB_p"]
     HR_p = agg["HR_p"]
 
-    # Metrics
     ERA = (ER * 9) / IP if IP > 0 else 0
     FIP = ((13 * HR_p) + (3 * BB_p) - (2 * SO)) / IP + 3.1 if IP > 0 else 0
     Unearned = R - ER
@@ -282,20 +280,13 @@ def compute_team_hitting_totals(df, league_filter=None):
     SLG = TB / AB if AB > 0 else 0
     OPS = OBP + SLG
 
-    wBB = 0.69
-    wHBP = 0.72
-    w1B = 0.88
-    w2B = 1.247
-    w3B = 1.578
-    wHR = 2.031
-
     woba_num = (
-        wBB * BB +
-        wHBP * HBP +
-        w1B * singles +
-        w2B * _2B +
-        w3B * _3B +
-        wHR * HR
+        0.69 * BB +
+        0.72 * HBP +
+        0.88 * singles +
+        1.247 * _2B +
+        1.578 * _3B +
+        2.031 * HR
     )
     woba_den = AB + BB + HBP + SF
     wOBA = woba_num / woba_den if woba_den > 0 else 0
@@ -324,7 +315,6 @@ def compute_team_hitting_totals(df, league_filter=None):
     }
 
 
-
 def ensure_cumulative_exists():
     if os.path.exists(CUMULATIVE_FILE):
         return
@@ -348,16 +338,16 @@ def ensure_cumulative_exists():
         pitcher_rows.append({
             "Name": csv_name,
             "Pos": base_pos,
-            "IP": 0.0, "R": 0, "ER": 0, "SO": 0, "BB": 0, "HR": 0, "HBP_p": 0,
+            "IP": 0.0, "R": 0, "ER": 0, "SO": 0,
+            "BB_p": 0, "HR_p": 0, "HBP_p": 0,
             "ERA": 0.0, "FIP": 0.0,
-         })
-
-     
+        })
 
     df_hitters = pd.DataFrame(hitter_rows).drop_duplicates(subset=["Name"])
     df_pitchers = pd.DataFrame(pitcher_rows).drop_duplicates(subset=["Name"])
 
     save_cumulative(df_hitters, df_pitchers)
+
 
 def load_cumulative():
     if not os.path.exists(CUMULATIVE_FILE):
@@ -388,10 +378,19 @@ def load_cumulative():
     df_hitters = pd.read_csv(StringIO("\n".join(hitter_lines))) if hitter_lines else None
     df_pitchers = pd.read_csv(StringIO("\n".join(pitcher_lines))) if pitcher_lines else None
 
-    if df_pitchers is not None and "R" not in df_pitchers.columns:
-        df_pitchers["R"] = df_pitchers["ER"]
+    if df_pitchers is not None:
+        # Backfill old cumulative files
+        if "BB_p" not in df_pitchers.columns and "BB" in df_pitchers.columns:
+            df_pitchers.rename(columns={"BB": "BB_p"}, inplace=True)
+        if "HR_p" not in df_pitchers.columns and "HR" in df_pitchers.columns:
+            df_pitchers.rename(columns={"HR": "HR_p"}, inplace=True)
+        if "HBP_p" not in df_pitchers.columns:
+            df_pitchers["HBP_p"] = 0
+        if "R" not in df_pitchers.columns and "ER" in df_pitchers.columns:
+            df_pitchers["R"] = df_pitchers["ER"]
 
     return df_hitters, df_pitchers
+
 
 def save_cumulative(df_hitters, df_pitchers):
     with open(CUMULATIVE_FILE, "w") as f:
@@ -399,6 +398,7 @@ def save_cumulative(df_hitters, df_pitchers):
         df_hitters.to_csv(f, index=False)
         f.write("\n=== PITCHERS ===\n")
         df_pitchers.to_csv(f, index=False)
+
 
 def recompute_hitting_metrics(df):
     if df is None or df.empty:
@@ -440,6 +440,7 @@ def recompute_hitting_metrics(df):
 
     return df.fillna(0.0)
 
+
 def recompute_pitching_metrics(df):
     if df is None or df.empty:
         return df
@@ -447,13 +448,14 @@ def recompute_pitching_metrics(df):
     IP = df["IP"]
     ER = df["ER"]
     SO = df["SO"]
-    BB = df["BB"]
-    HR = df["HR"]
+    BB_p = df["BB_p"]
+    HR_p = df["HR_p"]
 
     df["ERA"] = (ER * 9) / IP.replace(0, pd.NA)
-    df["FIP"] = (13*HR + 3*BB - 2*SO) / IP.replace(0, pd.NA) + 3.1
+    df["FIP"] = (13*HR_p + 3*BB_p - 2*SO) / IP.replace(0, pd.NA) + 3.1
 
     return df.fillna(0.0)
+
 
 def update_hitter_cumulative(player_name, stats):
     ensure_cumulative_exists()
@@ -480,9 +482,16 @@ def update_hitter_cumulative(player_name, stats):
     df_pitchers = recompute_pitching_metrics(df_pitchers)
     save_cumulative(df_hitters, df_pitchers)
 
+
 def update_pitcher_cumulative(player_name, stats):
     ensure_cumulative_exists()
     df_hitters, df_pitchers = load_cumulative()
+
+    if df_pitchers is None:
+        df_pitchers = pd.DataFrame(columns=[
+            "Name", "Pos", "IP", "R", "ER", "SO",
+            "BB_p", "HR_p", "HBP_p", "ERA", "FIP"
+        ])
 
     mask = df_pitchers["Name"] == player_name
     if not mask.any():
@@ -490,24 +499,30 @@ def update_pitcher_cumulative(player_name, stats):
         new_row = {
             "Name": player_name,
             "Pos": pos,
-            "IP": 0.0, "R": 0, "ER": 0, "SO": 0, "BB": 0, "HR": 0,
+            "IP": 0.0, "R": 0, "ER": 0, "SO": 0,
+            "BB_p": 0, "HR_p": 0, "HBP_p": 0,
             "ERA": 0.0, "FIP": 0.0,
         }
         df_pitchers = pd.concat([df_pitchers, pd.DataFrame([new_row])], ignore_index=True)
         mask = df_pitchers["Name"] == player_name
 
+    # Ensure columns exist
+    for col in ["IP", "R", "ER", "SO", "BB_p", "HR_p", "HBP_p"]:
+        if col not in df_pitchers.columns:
+            df_pitchers[col] = 0
+
     df_pitchers.loc[mask, "IP"] += stats["IP"]
     df_pitchers.loc[mask, "R"] += stats["R"]
     df_pitchers.loc[mask, "ER"] += stats["ER"]
     df_pitchers.loc[mask, "SO"] += stats["SO"]
-    df_pitchers.loc[mask, "BB"] += stats["BB_p"]
-    df_pitchers.loc[mask, "HR"] += stats["HR_p"]
+    df_pitchers.loc[mask, "BB_p"] += stats["BB_p"]
+    df_pitchers.loc[mask, "HR_p"] += stats["HR_p"]
     df_pitchers.loc[mask, "HBP_p"] += stats["HBP_p"]
-
 
     df_pitchers = recompute_pitching_metrics(df_pitchers)
     df_hitters = recompute_hitting_metrics(df_hitters)
     save_cumulative(df_hitters, df_pitchers)
+
 
 # ============================
 # GAME LOG HELPERS
@@ -520,6 +535,7 @@ def append_to_master_log(row_dict):
     else:
         df_row.to_csv(MASTER_LOG_FILE, mode="w", header=True, index=False)
 
+
 def append_to_game_file(game_id, row_dict):
     filename = os.path.join(GAME_LOG_DIR, f"{game_id}.csv")
     df_row = pd.DataFrame([row_dict])
@@ -527,6 +543,7 @@ def append_to_game_file(game_id, row_dict):
         df_row.to_csv(filename, mode="a", header=False, index=False)
     else:
         df_row.to_csv(filename, mode="w", header=True, index=False)
+
 
 def log_hitting(date, opponent, league_game, player_name, stats):
     row = {
@@ -536,11 +553,13 @@ def log_hitting(date, opponent, league_game, player_name, stats):
         "Player": player_name,
         "Type": "H",
         **stats,
-        "IP": 0.0, "R": 0, "ER": 0, "SO": 0, "BB_p": 0, "HR_p": 0, 
+        "IP": 0.0, "R": 0, "ER": 0, "SO": 0,
+        "BB_p": 0, "HR_p": 0, "HBP_p": 0,
     }
     game_id = f"{date}_{opponent.replace(' ', '_')}"
     append_to_master_log(row)
     append_to_game_file(game_id, row)
+
 
 def log_pitching(date, opponent, league_game, player_name, stats):
     row = {
@@ -550,17 +569,19 @@ def log_pitching(date, opponent, league_game, player_name, stats):
         "Player": player_name,
         "Type": "P",
         "AB": 0, "H": 0, "2B": 0, "3B": 0, "HR": 0,
-        "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0, "HBP": 0,
-        **stats,
+        "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0,
+        **stats,  # must include IP, R, ER, SO, BB_p, HR_p, HBP_p
     }
     game_id = f"{date}_{opponent.replace(' ', '_')}"
     append_to_master_log(row)
     append_to_game_file(game_id, row)
 
+
 def load_logs():
     if not os.path.exists(MASTER_LOG_FILE):
         return None
     return pd.read_csv(MASTER_LOG_FILE)
+
 
 # ============================
 # REBUILD CUMULATIVE FROM LOGS
@@ -585,8 +606,10 @@ def rebuild_cumulative_from_logs(df_logs):
             stats = {
                 "IP": row["IP"], "R": row["R"], "ER": row["ER"],
                 "SO": row["SO"], "BB_p": row["BB_p"], "HR_p": row["HR_p"],
+                "HBP_p": row.get("HBP_p", 0),
             }
             update_pitcher_cumulative(row["Player"], stats)
+
 
 
 ROSTER_DATA = [
