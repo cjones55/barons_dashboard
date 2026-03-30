@@ -789,19 +789,20 @@ ROSTER_DATA = [
 # ============================
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "Cumulative Players",
-    "Team Totals",
-    "Game Logs",
-    "Player Profiles",
-    "Roster",
-    "Coach Tools",
-    "Team Calendar",
+    "Roster",            # tab1
+    "Team Calendar",     # tab2
+    "Cumulative Players",# tab3
+    "Team Totals",       # tab4
+    "Game Logs",         # tab5
+    "Player Profiles",   # tab6
+    "Coach Tools",       # tab7
 ])
 
 
-# ---------- TAB 1: CUMULATIVE PLAYERS ----------
 
-with tab1:
+# ---------- TAB 3: CUMULATIVE PLAYERS ----------
+
+with tab3:
     st.header("Cumulative Player Stats")
 
     ensure_cumulative_exists()
@@ -844,9 +845,9 @@ with tab1:
             )
 
 
-# ---------- TAB 2: TEAM TOTALS ----------
+# ---------- TAB 4: TEAM TOTALS ----------
 
-with tab2:
+with tab4:
     st.header("Team Totals (from Game Logs)")
 
     df_logs = load_logs()
@@ -955,9 +956,9 @@ with tab2:
 
 
 
-# ---------- TAB 3: GAME LOGS ----------
+# ---------- TAB 5: GAME LOGS ----------
 
-with tab3:
+with tab5:
     st.header("Game Logs")
 
     df_logs = load_logs()
@@ -1044,9 +1045,9 @@ with tab3:
 
 
 
-# ---------- TAB 5: PLAYER PROFILES ----------
+# ---------- TAB 6: PLAYER PROFILES ----------
 
-with tab4:
+with tab6:
     st.header("Player Profiles")
 
     ensure_cumulative_exists()
@@ -1103,8 +1104,8 @@ with tab4:
         )
 
         
-# ---------- TAB 6: ROSTER ----------
-with tab5:
+# ---------- TAB 1: ROSTER ----------
+with tab1:
     st.header("CT Barons South Roster")
 
     df_roster = pd.DataFrame(ROSTER_DATA)
@@ -1119,8 +1120,8 @@ with tab5:
 
     
 
-# ---------- TAB 4: COACH TOOLS ----------
-with tab6:
+# ---------- TAB 7: COACH TOOLS ----------
+with tab7:
     st.header("Coach Tools (Password Protected)")
 
     # ---------------- AUTH ----------------
@@ -1475,8 +1476,8 @@ with tab6:
 
             st.success("Entry removed and stats recalculated.")
 
-# ---------- TAB 7: TEAM CALENDAR ----------
-with tab7:
+# ---------- TAB 6: TEAM CALENDAR ----------
+with tab6:
     st.header("Team Calendar")
 
     EMBED_URL = "https://calendar.google.com/calendar/embed?src=ac16d5a59cd0ddef373439ba781cf326390b134ef8f52790edb33f57e92c6e7b%40group.calendar.google.com&ctz=America%2FNew_York"
