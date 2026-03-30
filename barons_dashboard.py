@@ -336,9 +336,11 @@ def ensure_cumulative_exists():
         pitcher_rows.append({
             "Name": csv_name,
             "Pos": base_pos,
-            "IP": 0.0, "R": 0, "ER": 0, "SO": 0, "BB": 0, "HR": 0,
+            "IP": 0.0, "R": 0, "ER": 0, "SO": 0, "BB": 0, "HR": 0, "HBP_p": 0,
             "ERA": 0.0, "FIP": 0.0,
-        })
+         })
+
+     
 
     df_hitters = pd.DataFrame(hitter_rows).drop_duplicates(subset=["Name"])
     df_pitchers = pd.DataFrame(pitcher_rows).drop_duplicates(subset=["Name"])
@@ -488,6 +490,8 @@ def update_pitcher_cumulative(player_name, stats):
     df_pitchers.loc[mask, "SO"] += stats["SO"]
     df_pitchers.loc[mask, "BB"] += stats["BB_p"]
     df_pitchers.loc[mask, "HR"] += stats["HR_p"]
+    df_pitchers.loc[mask, "HBP_p"] += stats["HBP_p"]
+
 
     df_pitchers = recompute_pitching_metrics(df_pitchers)
     df_hitters = recompute_hitting_metrics(df_hitters)
@@ -520,7 +524,7 @@ def log_hitting(date, opponent, league_game, player_name, stats):
         "Player": player_name,
         "Type": "H",
         **stats,
-        "IP": 0.0, "R": 0, "ER": 0, "SO": 0, "BB_p": 0, "HR_p": 0,
+        "IP": 0.0, "R": 0, "ER": 0, "SO": 0, "BB_p": 0, "HR_p": 0, 
     }
     game_id = f"{date}_{opponent.replace(' ', '_')}"
     append_to_master_log(row)
@@ -534,7 +538,7 @@ def log_pitching(date, opponent, league_game, player_name, stats):
         "Player": player_name,
         "Type": "P",
         "AB": 0, "H": 0, "2B": 0, "3B": 0, "HR": 0,
-        "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0,
+        "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0, "HBP": 0,
         **stats,
     }
     game_id = f"{date}_{opponent.replace(' ', '_')}"
@@ -913,6 +917,69 @@ with tab6:
                     update_pitcher_cumulative(csv_name_p, stats_p)
                     log_pitching(date, opponent, league_game, csv_name_p, stats_p)
                     st.success(f"Pitching stats recorded for {csv_name_p}.")
+
+st.subheader("Quick Box Score Entry")
+
+with st.expander("Hitting Box Score"):
+    with st.form("box_hitting"):
+        player = st.selectbox("Player", sorted(PLAYERS.keys()), key="box_hit_player")
+        AB = st.number_input("AB", min_value=0, step=1)
+        R = st.number_input("Runs", min_value=0, step=1)
+        H = st.number_input("Hits", min_value=0, step=1)
+        RBI = st.number_input("RBI", min_value=0, step=1)
+        BB = st.number_input("BB", min_value=0, step=1)
+        K = st.number_input("K", min_value=0, step=1)
+        HBP = st.number_input("HBP", min_value=0, step=1)
+        SB = st.number_input("SB", min_value=0, step=1)
+        submit_box_hit = st.form_submit_button("Submit Hitting Box Score")
+
+    if submit_box_hit:
+        csv_name = DISPLAY_TO_CSV_NAME.get(player, player)
+        stats = {
+            "AB": AB,
+            "H": H,
+            "2B": 0,
+            "3B": 0,
+            "HR": 0,
+            "BB": BB,
+            "K": K,
+            "HBP": HBP,
+            "SF": 0,
+            "SB": SB,
+        }
+        update_hitter_cumulative(csv_name, stats)
+        log_hitting(date, opponent, league_game, csv_name, stats)
+        st.success(f"Box score recorded for {csv_name}.")
+        
+with st.expander("Pitching Box Score"):
+    with st.form("box_pitching"):
+        player_p = st.selectbox("Pitcher", sorted(PLAYERS.keys()), key="box_pitch_player")
+        IP = st.number_input("IP (e.g., 5.2)", min_value=0.0, step=0.1)
+        H_p = st.number_input("Hits Allowed", min_value=0, step=1)
+        R = st.number_input("Runs", min_value=0, step=1)
+        ER = st.number_input("Earned Runs", min_value=0, step=1)
+        BB_p = st.number_input("Walks", min_value=0, step=1)
+        K_p = st.number_input("Strikeouts", min_value=0, step=1)
+        HR_p = st.number_input("HR Allowed", min_value=0, step=1)
+        HBP_p = st.number_input("Hit Batters (HBP)", min_value=0, step=1)
+        submit_box_pit = st.form_submit_button("Submit Pitching Box Score")
+
+    if submit_box_pit:
+        csv_name_p = DISPLAY_TO_CSV_NAME.get(player_p, player_p)
+        stats_p = {
+            "IP": IP,
+            "R": R,
+            "ER": ER,
+            "SO": K_p,
+            "BB_p": BB_p,
+            "HR_p": HR_p,
+            "HBP_p": HBP_p,
+        }
+        update_pitcher_cumulative(csv_name_p, stats_p)
+        log_pitching(date, opponent, league_game, csv_name_p, stats_p)
+        st.success(f"Pitching box score recorded for {csv_name_p}.")
+
+
 
         # Admin delete tool
         st.subheader("Admin: Remove a Stat Entry")
