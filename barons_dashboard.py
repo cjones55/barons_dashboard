@@ -657,14 +657,14 @@ def log_hitting(date, opponent, league_game, player_name, stats):
 
 
 def log_pitching(date, opponent, league_game, player_name, stats):
-    # Ensure all pitching fields exist
-    IP     = float(stats.get("IP", 0))
-    R      = int(stats.get("R", 0))
-    ER     = int(stats.get("ER", 0))
-    SO     = int(stats.get("SO", 0))
-    BB_p   = int(stats.get("BB_p", 0))
-    HR_p   = int(stats.get("HR_p", 0))
-    HBP_p  = int(stats.get("HBP_p", 0))
+    # Extract pitching stats safely with defaults
+    IP    = float(stats.get("IP", 0))
+    R     = int(stats.get("R", 0))
+    ER    = int(stats.get("ER", 0))
+    SO    = int(stats.get("SO", 0))
+    BB_p  = int(stats.get("BB_p", 0))
+    HR_p  = int(stats.get("HR_p", 0))
+    HBP_p = int(stats.get("HBP_p", 0))  # <-- REQUIRED
 
     row = {
         "Date": date,
@@ -676,7 +676,7 @@ def log_pitching(date, opponent, league_game, player_name, stats):
         # Hitting placeholders (must exist for schema consistency)
         "AB": 0, "H": 0, "2B": 0, "3B": 0, "HR": 0,
         "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0,
-        "PA": 0,   # <-- REQUIRED FOR ALL ROWS
+        "PA": 0,  # <-- REQUIRED FOR ALL ROWS
 
         # Pitching stats
         "IP": IP,
@@ -691,7 +691,6 @@ def log_pitching(date, opponent, league_game, player_name, stats):
     game_id = f"{date}_{opponent.replace(' ', '_')}"
     append_to_master_log(row)
     append_to_game_file(game_id, row)
-
 
 
 def load_logs():
@@ -1115,6 +1114,90 @@ with tab5:
             "Number": "{:d}"
         })
     )
+
+    st.markdown("---")
+    st.subheader("Log Tools (Maintenance)")
+
+    # -------------------------
+    # DEBUG VIEW
+    # -------------------------
+    if st.checkbox("Show Raw Log Debugger"):
+        df_debug = load_logs()
+        if df_debug is None:
+            st.info("No logs found.")
+        else:
+            st.write("Columns:", df_debug.columns.tolist())
+            st.dataframe(df_debug.tail(25))
+
+    # -------------------------
+    # MIGRATION SCRIPT
+    # -------------------------
+    def migrate_logs():
+        df = load_logs()
+        if df is None or df.empty:
+            st.warning("No logs to migrate.")
+            return
+
+        # Normalize Type
+        df["Type"] = (
+            df["Type"]
+            .astype(str)
+            .str.upper()
+            .str.strip()
+            .replace({"PITCHING": "P", "HITTING": "H"})
+        )
+
+        # Normalize LeagueGame
+        df["LeagueGame"] = pd.to_numeric(df["LeagueGame"], errors="coerce").fillna(0).astype(int)
+
+        # Ensure hitting columns exist
+        for col in ["AB","H","2B","3B","HR","BB","K","HBP","SF","SB"]:
+            if col not in df.columns:
+                df[col] = 0
+
+        # Ensure PA exists
+        if "PA" not in df.columns:
+            df["PA"] = (
+                df["AB"].fillna(0) +
+                df["BB"].fillna(0) +
+                df["HBP"].fillna(0) +
+                df["SF"].fillna(0)
+            )
+
+        # Ensure pitching columns exist
+        for col in ["IP","R","ER","SO","BB_p","HR_p","HBP_p"]:
+            if col not in df.columns:
+                df[col] = 0
+
+        # Convert numeric columns
+        numeric_cols = [
+            "AB","H","2B","3B","HR","BB","K","HBP","SF","SB","PA",
+            "IP","R","ER","SO","BB_p","HR_p","HBP_p"
+        ]
+        for col in numeric_cols:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+        # Reorder columns to match schema
+        df = df[
+            [
+                "Date","Opponent","LeagueGame","Player","Type",
+                "AB","H","2B","3B","HR","BB","K","HBP","SF","SB","PA",
+                "IP","R","ER","SO","BB_p","HR_p","HBP_p"
+            ]
+        ]
+
+        # Save clean file
+        df.to_csv(MASTER_LOG_FILE, index=False)
+        st.success("Logs migrated and cleaned successfully.")
+
+    # -------------------------
+    # RUN MIGRATION BUTTON
+    # -------------------------
+    if st.button("Fix / Migrate Logs"):
+        migrate_logs()
+        st.success("Log file repaired. Reload the app to apply changes.")
+
+    
 
 # ---------- TAB 4: COACH TOOLS ----------
 with tab6:
