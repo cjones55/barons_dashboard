@@ -657,19 +657,41 @@ def log_hitting(date, opponent, league_game, player_name, stats):
 
 
 def log_pitching(date, opponent, league_game, player_name, stats):
+    # Ensure all pitching fields exist
+    IP     = float(stats.get("IP", 0))
+    R      = int(stats.get("R", 0))
+    ER     = int(stats.get("ER", 0))
+    SO     = int(stats.get("SO", 0))
+    BB_p   = int(stats.get("BB_p", 0))
+    HR_p   = int(stats.get("HR_p", 0))
+    HBP_p  = int(stats.get("HBP_p", 0))
+
     row = {
         "Date": date,
         "Opponent": opponent,
         "LeagueGame": 1 if league_game else 0,
         "Player": player_name,
         "Type": "P",
+
+        # Hitting placeholders (must exist for schema consistency)
         "AB": 0, "H": 0, "2B": 0, "3B": 0, "HR": 0,
         "BB": 0, "K": 0, "HBP": 0, "SF": 0, "SB": 0,
-        **stats,  # must include IP, R, ER, SO, BB_p, HR_p, HBP_p
+        "PA": 0,   # <-- REQUIRED FOR ALL ROWS
+
+        # Pitching stats
+        "IP": IP,
+        "R": R,
+        "ER": ER,
+        "SO": SO,
+        "BB_p": BB_p,
+        "HR_p": HR_p,
+        "HBP_p": HBP_p,
     }
+
     game_id = f"{date}_{opponent.replace(' ', '_')}"
     append_to_master_log(row)
     append_to_game_file(game_id, row)
+
 
 
 def load_logs():
