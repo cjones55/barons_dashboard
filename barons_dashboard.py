@@ -763,7 +763,7 @@ ROSTER_DATA = [
     {"Number": 24, "Name": "Adien O'Laughlin", "Position": "OF", "Bats": "R", "Throws": "R", "School": "Trinity", "Year": "Freshman"},
     {"Number": 15, "Name": "Nick Carlucci", "Position": "OF", "Bats": "R", "Throws": "R", "School": "Pace", "Year": "Senior"},
     {"Number": 23, "Name": "Mike Fischetti", "Position": "OF", "Bats": "L", "Throws": "R", "School": "Gettysburg", "Year": "Junior"},
-    {"Number": 33, "Name": "Staller", "Position": "OF", "Bats": "R", "Throws": "R", "School": "?", "Year": "?"},
+    {"Number": 33, "Name": "Owen Staller", "Position": "OF", "Bats": "R", "Throws": "R", "School": "Nichols", "Year": "Freshman"},
 
     # Pitchers
     {"Number": 30, "Name": "Tristan Pearl", "Position": "P", "Bats": "L", "Throws": "L", "School": "Babson", "Year": "Senior"},
@@ -780,6 +780,7 @@ ROSTER_DATA = [
     {"Number": 58, "Name": "Adam Rosenfield", "Position": "P", "Bats": "R", "Throws": "R", "School": "Montclair St.", "Year": "Sophomore"},
     {"Number": 42, "Name": "Branden Gaska", "Position": "P", "Bats": "R", "Throws": "R", "School": "Westfield St.", "Year": "Freshman"},
     {"Number": 35, "Name": "Tyler Easterbrook", "Position": "P", "Bats": "R", "Throws": "R", "School": "Tufts", "Year": "Freshman"},
+    {"Number": 28, "Name": "Teddy Bancroft", "Position": "P", "Bats": "R", "Throws": "R", "School": "Middlebury", "Year": "Freshman"}
 ]
 
 
