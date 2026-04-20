@@ -208,7 +208,7 @@ PLAYERS = {
     "Adien O'Laughlin": "OF",
     "Nick Carlucci": "OF",
     "Mike Fischetti": "OF",
-    "Staller": "OF",
+    "Owen Staller": "OF",
     "Tristan Pearl": "P",
     "Nevin Belanger": "P",
     "Tommy Burgers": "P",
@@ -223,6 +223,7 @@ PLAYERS = {
     "Adam Rosenfield": "P",
     "Branden Gaska": "P",
     "Tyler Easterbrook": "P",
+    "Teddy Bancroft": "P",
 }
 
 DISPLAY_TO_CSV_NAME = {
