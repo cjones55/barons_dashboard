@@ -1482,7 +1482,7 @@ with tab7:
 with tab6:
     st.header("Team Calendar")
 
-    EMBED_URL = "https://calendar.google.com/calendar/embed?src=ac16d5a59cd0ddef373439ba781cf326390b134ef8f52790edb33f57e92c6e7b%40group.calendar.google.com&ctz=America%2FNew_York"
+    EMBED_URL = "https://calendar.google.com/calendar/embed?src=ac16d5a59cd0ddef373439ba781cf326390b134ef8f52790edb33f57e92c6e7b%40group.calendar.google.com&ctz=America%2FNew_Yorkmerica%2FNew_York"
 
     st.components.v1.iframe(EMBED_URL, width=800, height=600)
 
