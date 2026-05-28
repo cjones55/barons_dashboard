@@ -766,7 +766,7 @@ ROSTER_DATA = [
     {"Number": 50, "Name": "Brett Davino",    "Position": "UTIL", "Bats": "L", "Throws": "R", "School": "Stony Brook",       "Year": "Senior"},
     {"Number": 55, "Name": "Nick Dorso",      "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Roanoke",           "Year": "Sophomore"},
     {"Number": 69, "Name": "Brandon Skerritt","Position": "C",    "Bats": "R", "Throws": "R", "School": "Bentley",           "Year": "Freshman"},
-    {"Number": 72, "Name": "Nick Petta",      "Position": "P",    "Bats": "R", "Throws": "R", "School": "Roger Williams",    "Year": "Freshman"},
+    {"Number": 72, "Name": "Nick Petta",      "Position": "P",    "Bats": "R", "Throws": "R", "School": "Roger Williams",    "Year": "Junior"},
 ]
 
 
