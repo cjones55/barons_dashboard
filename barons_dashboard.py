@@ -761,7 +761,7 @@ ROSTER_DATA = [
     {"Number": 17, "Name": "Nevin Belanger",  "Position": "P",    "Bats": "L", "Throws": "L", "School": "Johnson and Wales", "Year": "Senior"},
     {"Number": 20, "Name": "Tommy Farrell",   "Position": "P",    "Bats": "R", "Throws": "R", "School": "Gettysburg",        "Year": "Junior"},
     {"Number": 34, "Name": "Colin Donofrio",  "Position": "P",    "Bats": "R", "Throws": "R", "School": "SUNY Purchase",     "Year": "Junior"},
-    {"Number": 39, "Name": "Chris Keating",   "Position": "P",    "Bats": "R", "Throws": "R", "School": "?",                 "Year": "?"},
+    {"Number": 39, "Name": "Chris Keating",   "Position": "P",    "Bats": "R", "Throws": "R", "School": "F&M",               "Year": "Sophomore"},
     {"Number": 41, "Name": "Liam DaSilva",    "Position": "C/1B", "Bats": "R", "Throws": "R", "School": "Dean College",      "Year": "Freshman"},
     {"Number": 50, "Name": "Brett Davino",    "Position": "UTIL", "Bats": "L", "Throws": "R", "School": "Stony Brook",       "Year": "Senior"},
     {"Number": 55, "Name": "Nick Dorso",      "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Roanoke",           "Year": "Sophomore"},
