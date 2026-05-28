@@ -1,0 +1,13 @@
+.env
+.env.*
+.DS_Store
+__pycache__/
+*.pyc
+models/
+models_stuff_single_pitch/
+logs/
+#
+a
+create
+file
+real
