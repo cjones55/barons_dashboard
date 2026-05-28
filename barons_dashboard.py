@@ -236,29 +236,31 @@ def compute_team_pitching_totals(df, league_filter=None):
     if df.empty:
         return None
 
-    agg = df[["IP", "R", "ER", "SO", "BB_p", "HR_p", "HBP_p"]].sum()
+    for col in ["BB_p", "HR_p", "HBP_p", "W", "L", "SV"]:
+        if col not in df.columns:
+            df[col] = 0
+    agg = df[["IP", "R", "ER", "SO", "BB_p", "HR_p", "HBP_p", "W", "L", "SV"]].sum()
 
-    IP = agg["IP"]
-    R = agg["R"]
-    ER = agg["ER"]
-    SO = agg["SO"]
+    IP   = agg["IP"]
+    R    = agg["R"]
+    ER   = agg["ER"]
+    SO   = agg["SO"]
     BB_p = agg["BB_p"]
+    HBP_p = agg["HBP_p"]
     HR_p = agg["HR_p"]
+    W    = int(agg["W"])
+    L    = int(agg["L"])
+    SV   = int(agg["SV"])
 
     ERA = (ER * 9) / IP if IP > 0 else 0
-    FIP = ((13 * HR_p) + (3 * BB_p) - (2 * SO)) / IP + 3.1 if IP > 0 else 0
+    FIP = ((13 * HR_p) + (3 * (BB_p + HBP_p)) - (2 * SO)) / IP + 3.1 if IP > 0 else 0
     Unearned = R - ER
 
     return {
-        "IP": IP,
-        "R": R,
-        "ER": ER,
-        "Unearned": Unearned,
-        "SO": SO,
-        "BB": BB_p,
-        "HR": HR_p,
-        "ERA": ERA,
-        "FIP": FIP
+        "IP": IP, "W": W, "L": L, "SV": SV,
+        "R": R, "ER": ER, "Unearned": Unearned,
+        "SO": SO, "BB": BB_p, "HR": HR_p,
+        "ERA": ERA, "FIP": FIP
     }
 
 
@@ -277,65 +279,48 @@ def compute_team_hitting_totals(df, league_filter=None):
         df["PA"] = df["AB"] + df["BB"] + df["HBP"] + df["SF"]
 
     # Ensure all required columns exist
-    required_cols = ["AB","H","2B","3B","HR","BB","K","HBP","SF","SB","PA"]
+    required_cols = ["AB","H","2B","3B","HR","BB","K","HBP","SF","SB","PA","RBI"]
     for col in required_cols:
         if col not in df.columns:
             df[col] = 0
 
     agg = df[required_cols].sum()
 
-    AB = agg["AB"]
-    H = agg["H"]
+    AB  = agg["AB"]
+    H   = agg["H"]
     _2B = agg["2B"]
     _3B = agg["3B"]
-    HR = agg["HR"]
-    BB = agg["BB"]
-    K = agg["K"]
+    HR  = agg["HR"]
+    BB  = agg["BB"]
+    K   = agg["K"]
     HBP = agg["HBP"]
-    SF = agg["SF"]
-    SB = agg["SB"]
-    PA = agg["PA"]
+    SF  = agg["SF"]
+    SB  = agg["SB"]
+    PA  = agg["PA"]
+    RBI = int(agg["RBI"])
 
-    AVG = H / AB if AB > 0 else 0
-    OBP = (H + BB + HBP) / PA if PA > 0 else 0
-
+    AVG  = H / AB if AB > 0 else 0
+    OBP  = (H + BB + HBP) / PA if PA > 0 else 0
     singles = H - _2B - _3B - HR
-    TB = singles + 2*_2B + 3*_3B + 4*HR
-    SLG = TB / AB if AB > 0 else 0
-    OPS = OBP + SLG
-
+    TB   = singles + 2*_2B + 3*_3B + 4*HR
+    SLG  = TB / AB if AB > 0 else 0
+    OPS  = OBP + SLG
     woba_num = (
-        0.69 * BB +
-        0.72 * HBP +
-        0.88 * singles +
-        1.247 * _2B +
-        1.578 * _3B +
-        2.031 * HR
+        0.69*BB + 0.72*HBP + 0.88*singles +
+        1.247*_2B + 1.578*_3B + 2.031*HR
     )
-    wOBA = woba_num / PA if PA > 0 else 0
-
-    K_pct = K / PA if PA > 0 else 0
+    wOBA   = woba_num / PA if PA > 0 else 0
+    K_pct  = K / PA if PA > 0 else 0
     BB_pct = BB / PA if PA > 0 else 0
+    babip_denom = AB - K - HR + SF
+    BABIP  = (H - HR) / babip_denom if babip_denom > 0 else 0
 
     return {
-        "AB": AB,
-        "H": H,
-        "2B": _2B,
-        "3B": _3B,
-        "HR": HR,
-        "BB": BB,
-        "K": K,
-        "HBP": HBP,
-        "SF": SF,
-        "SB": SB,
-        "PA": PA,
-        "AVG": AVG,
-        "OBP": OBP,
-        "SLG": SLG,
-        "OPS": OPS,
-        "wOBA": wOBA,
-        "K%": K_pct,
-        "BB%": BB_pct
+        "AB": AB, "H": H, "2B": _2B, "3B": _3B, "HR": HR,
+        "BB": BB, "K": K, "HBP": HBP, "SF": SF, "SB": SB,
+        "PA": PA, "RBI": RBI,
+        "AVG": AVG, "OBP": OBP, "SLG": SLG, "OPS": OPS,
+        "wOBA": wOBA, "BABIP": BABIP, "K%": K_pct, "BB%": BB_pct
     }
 
 
@@ -501,8 +486,9 @@ def recompute_pitching_metrics(df):
     BB_p = df["BB_p"]
     HR_p = df["HR_p"]
 
+    HBP_p = df["HBP_p"] if "HBP_p" in df.columns else pd.Series(0, index=df.index)
     df["ERA"] = (ER * 9) / IP.replace(0, pd.NA)
-    df["FIP"] = (13*HR_p + 3*BB_p - 2*SO) / IP.replace(0, pd.NA) + 3.1
+    df["FIP"] = (13*HR_p + 3*(BB_p + HBP_p) - 2*SO) / IP.replace(0, pd.NA) + 3.1
 
     # W, L, SV are counting stats — preserve them, don't recompute
     for col in ["W", "L", "SV"]:
@@ -929,22 +915,24 @@ with tab4:
                 if hit_totals:
                     ht = hit_totals
 
-                    st.metric("AVG", f"{ht['AVG']:.3f}")
-                    st.metric("OBP", f"{ht['OBP']:.3f}")
-                    st.metric("SLG", f"{ht['SLG']:.3f}")
-                    st.metric("OPS", f"{ht['OPS']:.3f}")
-                    st.metric("wOBA", f"{ht['wOBA']:.3f}")
-
+                    c_a, c_b, c_c, c_d = st.columns(4)
+                    c_a.metric("AVG",  f"{ht['AVG']:.3f}")
+                    c_b.metric("OBP",  f"{ht['OBP']:.3f}")
+                    c_c.metric("SLG",  f"{ht['SLG']:.3f}")
+                    c_d.metric("OPS",  f"{ht['OPS']:.3f}")
+                    c_e, c_f, c_g, c_h = st.columns(4)
+                    c_e.metric("wOBA", f"{ht['wOBA']:.3f}")
+                    c_f.metric("BABIP", f"{ht['BABIP']:.3f}")
+                    c_g.metric("K%",   f"{ht['K%']*100:.1f}%")
+                    c_h.metric("BB%",  f"{ht['BB%']*100:.1f}%")
                     st.write(
-                        f"AB: {ht['AB']}, H: {ht['H']}, 2B: {ht['2B']}, "
-                        f"3B: {ht['3B']}, HR: {ht['HR']}"
+                        f"PA: {int(ht['PA'])}  AB: {int(ht['AB'])}  H: {int(ht['H'])}  "
+                        f"2B: {int(ht['2B'])}  3B: {int(ht['3B'])}  HR: {int(ht['HR'])}  "
+                        f"RBI: {int(ht['RBI'])}  SB: {int(ht['SB'])}"
                     )
                     st.write(
-                        f"BB: {ht['BB']}, K: {ht['K']}, HBP: {ht['HBP']}, "
-                        f"SF: {ht['SF']}, SB: {ht['SB']}, PA: {ht['PA']}"
-                    )
-                    st.write(
-                        f"K%: {ht['K%']*100:.1f}%, BB%: {ht['BB%']*100:.1f}%"
+                        f"BB: {int(ht['BB'])}  K: {int(ht['K'])}  "
+                        f"HBP: {int(ht['HBP'])}  SF: {int(ht['SF'])}"
                     )
 
             # -------------------------
@@ -956,15 +944,23 @@ with tab4:
                 if pit_totals:
                     pt = pit_totals
 
-                    st.metric("ERA", f"{pt['ERA']:.3f}")
-                    st.metric("FIP", f"{pt['FIP']:.3f}")
-
+                    c_a, c_b, c_c = st.columns(3)
+                    c_a.metric("ERA", f"{pt['ERA']:.2f}")
+                    c_b.metric("FIP", f"{pt['FIP']:.2f}")
+                    k9 = (pt['SO'] * 9 / pt['IP']) if pt['IP'] > 0 else 0
+                    c_c.metric("K/9", f"{k9:.1f}")
+                    c_d, c_e, c_f = st.columns(3)
+                    bb9 = (pt['BB'] * 9 / pt['IP']) if pt['IP'] > 0 else 0
+                    kbb = (pt['SO'] / pt['BB']) if pt['BB'] > 0 else 0
+                    c_d.metric("BB/9", f"{bb9:.1f}")
+                    c_e.metric("K/BB", f"{kbb:.2f}" if pt['BB'] > 0 else "—")
+                    c_f.metric("W-L-SV", f"{int(pt['W'])}-{int(pt['L'])}-{int(pt['SV'])}")
                     st.write(
-                        f"IP: {pt['IP']:.1f}, R: {pt['R']}, ER: {pt['ER']}, "
-                        f"Unearned: {pt['Unearned']}"
+                        f"IP: {pt['IP']:.1f}  R: {int(pt['R'])}  ER: {int(pt['ER'])}  "
+                        f"Unearned: {int(pt['Unearned'])}"
                     )
                     st.write(
-                        f"SO: {pt['SO']}, BB: {pt['BB']}, HR: {pt['HR']}"
+                        f"SO: {int(pt['SO'])}  BB: {int(pt['BB'])}  HR: {int(pt['HR'])}"
                     )
 
 
@@ -1085,25 +1081,55 @@ with tab6:
                 hit_row["SF"]
             )
 
+        hit_display = hit_row.copy()
+
+        # Compute advanced hitting stats
+        ab  = hit_display["AB"].values[0]
+        h_  = hit_display["H"].values[0]
+        d2  = hit_display["2B"].values[0]
+        d3  = hit_display["3B"].values[0]
+        hr  = hit_display["HR"].values[0]
+        bb  = hit_display["BB"].values[0]
+        k   = hit_display["K"].values[0]
+        hbp = hit_display["HBP"].values[0]
+        sf  = hit_display["SF"].values[0]
+        pa  = hit_display["PA"].values[0]
+        slg = hit_display["SLG"].values[0] if "SLG" in hit_display.columns else 0
+        avg = hit_display["AVG"].values[0] if "AVG" in hit_display.columns else 0
+
+        singles = h_ - d2 - d3 - hr
+        tb      = singles + 2*d2 + 3*d3 + 4*hr
+        iso     = slg - avg
+        xbh     = d2 + d3 + hr
+        babip_d = ab - k - hr + sf
+        babip   = (h_ - hr) / babip_d if babip_d > 0 else 0.0
+
+        hit_display["ISO"]   = iso
+        hit_display["XBH"]   = int(xbh)
+        hit_display["TB"]    = int(tb)
+        hit_display["BABIP"] = babip
+
         h_profile_cols = [c for c in [
             "Name", "Pos",
             "PA", "AB", "H", "2B", "3B", "HR", "RBI",
-            "BB", "K", "HBP", "SF", "SB",
+            "BB", "K", "HBP", "SF", "SB", "XBH", "TB",
             "AVG", "OBP", "SLG", "OPS",
-            "wOBA", "K%", "BB%"
-        ] if c in hit_row.columns]
+            "wOBA", "BABIP", "ISO", "K%", "BB%"
+        ] if c in hit_display.columns]
 
-        hit_display = hit_row[h_profile_cols].copy()
+        hit_display = hit_display[h_profile_cols].copy()
         hit_display["K%"]  = (hit_display["K%"]  * 100).round(1).astype(str) + "%"
         hit_display["BB%"] = (hit_display["BB%"] * 100).round(1).astype(str) + "%"
 
         st.dataframe(
             hit_display.style.format({
-                "AVG":  "{:.3f}",
-                "OBP":  "{:.3f}",
-                "SLG":  "{:.3f}",
-                "OPS":  "{:.3f}",
-                "wOBA": "{:.3f}",
+                "AVG":   "{:.3f}",
+                "OBP":   "{:.3f}",
+                "SLG":   "{:.3f}",
+                "OPS":   "{:.3f}",
+                "wOBA":  "{:.3f}",
+                "BABIP": "{:.3f}",
+                "ISO":   "{:.3f}",
             })
         )
 
@@ -1114,19 +1140,32 @@ with tab6:
         pit_row = pit_row.copy()
         pit_row["Unearned"] = pit_row["R"] - pit_row["ER"]
 
+        # Compute advanced pitching stats
+        ip_  = pit_row["IP"].values[0]
+        so_  = pit_row["SO"].values[0]
+        bb_  = pit_row["BB_p"].values[0]
+        hr_  = pit_row["HR_p"].values[0]
+        pit_row["K/9"]  = round((so_ * 9 / ip_), 2) if ip_ > 0 else 0.0
+        pit_row["BB/9"] = round((bb_ * 9 / ip_), 2) if ip_ > 0 else 0.0
+        pit_row["HR/9"] = round((hr_ * 9 / ip_), 2) if ip_ > 0 else 0.0
+        pit_row["K/BB"] = round(so_ / bb_, 2) if bb_ > 0 else None
+
         p_profile_cols = [c for c in [
             "Name", "Pos",
             "IP", "W", "L", "SV",
             "R", "ER", "Unearned",
             "SO", "BB_p", "HR_p", "HBP_p",
-            "ERA", "FIP"
+            "ERA", "FIP", "K/9", "BB/9", "HR/9", "K/BB"
         ] if c in pit_row.columns]
 
         st.dataframe(
             pit_row[p_profile_cols].style.format({
-                "IP":  "{:.1f}",
-                "ERA": "{:.2f}",
-                "FIP": "{:.2f}",
+                "IP":   "{:.1f}",
+                "ERA":  "{:.2f}",
+                "FIP":  "{:.2f}",
+                "K/9":  "{:.2f}",
+                "BB/9": "{:.2f}",
+                "HR/9": "{:.2f}",
             })
         )
 

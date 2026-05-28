@@ -1,1 +1,17 @@
-Date,Opponent,LeagueGame,Player,Type,AB,H,2B,3B,HR,RBI,BB,K,HBP,SF,SB,PA,IP,W,L,SV,R,ER,SO,BB_p,HR_p,HBP_p
+Date,Opponent,LeagueGame,Player,Type,AB,H,2B,3B,HR,BB,K,HBP,SF,SB,PA,RBI,IP,R,ER,SO,BB_p,HR_p,HBP_p,W,L,SV
+2026-05-27,Barons North,1,Timmy Domizio,H,4,0,0,0,0,0,3,0,0,0,4,0,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Henry Silvia,H,2,1,0,0,0,1,0,0,0,0,3,0,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Jack Farnen,H,2,0,0,0,0,1,2,0,0,0,3,0,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Oliver Merced,H,1,0,0,0,0,1,0,1,0,0,3,1,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Stephen Polizzi,H,3,1,1,0,0,0,1,1,0,0,4,2,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Nick Carlucci,H,4,2,0,1,0,0,0,0,0,1,4,0,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Liam DaSilva,H,3,2,0,0,0,0,1,0,0,0,3,1,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Brett Davino,H,2,0,0,0,0,1,1,1,0,1,4,0,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Nick Dorso,H,2,0,0,0,0,1,0,0,0,0,3,1,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,Brandon Skerritt,H,2,1,0,0,0,1,0,0,0,1,3,0,0.0,0,0,0,0,0,0,0,0,0
+2026-05-27,Barons North,1,James Aselta,P,0,0,0,0,0,0,0,0,0,0,0,0,1.0,0,0,1,1,0,0,0,0,0
+2026-05-27,Barons North,1,Nevin Belanger,P,0,0,0,0,0,0,0,0,0,0,0,0,1.0,1,1,0,3,0,0,0,0,0
+2026-05-27,Barons North,1,Tommy Farrell,P,0,0,0,0,0,0,0,0,0,0,0,0,1.0,2,0,2,1,0,2,0,0,0
+2026-05-27,Barons North,1,Colin Donofrio,P,0,0,0,0,0,0,0,0,0,0,0,0,2.0,0,0,4,1,0,0,0,0,0
+2026-05-27,Barons North,1,Chris Keating,P,0,0,0,0,0,0,0,0,0,0,0,0,1.0,1,1,1,1,0,1,0,0,0
+2026-05-27,Barons North,1,Nick Petta,P,0,0,0,0,0,0,0,0,0,0,0,0,1.0,0,0,0,0,0,0,0,0,0
