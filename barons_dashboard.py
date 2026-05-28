@@ -759,7 +759,7 @@ ROSTER_DATA = [
     {"Number": 13, "Name": "Stephen Polizzi", "Position": "C",    "Bats": "R", "Throws": "R", "School": "St. Peter's",       "Year": "Sophomore"},
     {"Number": 15, "Name": "Nick Carlucci",   "Position": "OF",   "Bats": "R", "Throws": "R", "School": "Pace",              "Year": "Senior"},
     {"Number": 17, "Name": "Nevin Belanger",  "Position": "P",    "Bats": "L", "Throws": "L", "School": "Johnson and Wales", "Year": "Senior"},
-    {"Number": 20, "Name": "Tommy Farrell",   "Position": "P",    "Bats": "R", "Throws": "R", "School": "?",                 "Year": "?"},
+    {"Number": 20, "Name": "Tommy Farrell",   "Position": "P",    "Bats": "R", "Throws": "R", "School": "Gettysburg",        "Year": "Junior"},
     {"Number": 34, "Name": "Colin Donofrio",  "Position": "P",    "Bats": "R", "Throws": "R", "School": "SUNY Purchase",     "Year": "Junior"},
     {"Number": 39, "Name": "Chris Keating",   "Position": "P",    "Bats": "R", "Throws": "R", "School": "?",                 "Year": "?"},
     {"Number": 41, "Name": "Liam DaSilva",    "Position": "C/1B", "Bats": "R", "Throws": "R", "School": "Dean College",      "Year": "Freshman"},
