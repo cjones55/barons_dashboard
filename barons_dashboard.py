@@ -773,10 +773,10 @@ ROSTER_DATA = [
     {"Number": 69, "Name": "Brandon Skerritt", "Position": "C",    "Bats": "R", "Throws": "R", "School": "Bentley",              "Year": "Freshman"},
     {"Number": 72, "Name": "Nick Petta",       "Position": "P",    "Bats": "R", "Throws": "R", "School": "Roger Williams",       "Year": "Junior"},
     {"Number": 27, "Name": "Joel Strand",      "Position": "C",    "Bats": "R", "Throws": "R", "School": "Illinois Wesleyan",    "Year": "Junior"},
-    {"Number": 20, "Name": "Patrick Leonard",  "Position": "OF",   "Bats": "?", "Throws": "?", "School": "Oberlin College",     "Year": "Sophomore"},
-    {"Number": 5,  "Name": "Christian Barboto","Position": "P",    "Bats": "R", "Throws": "R", "School": "Emory",               "Year": "Sophomore"},
-    {"Number": 30, "Name": "Tristian Pearl",   "Position": "P",    "Bats": "?", "Throws": "?", "School": "Babson",              "Year": "Senior"},
-    {"Number": 40, "Name": "Nick Hios",        "Position": "P",    "Bats": "?", "Throws": "?", "School": "Monmouth",            "Year": "Senior"},
+    {"Number": 20, "Name": "Patrick Leonard",  "Position": "OF",   "Bats": "L", "Throws": "L", "School": "Oberlin College",     "Year": "Sophomore"},
+    {"Number": 5,  "Name": "Christian Barboto","Position": "P",    "Bats": "L", "Throws": "L", "School": "Emory",               "Year": "Sophomore"},
+    {"Number": 30, "Name": "Tristian Pearl",   "Position": "P",    "Bats": "L", "Throws": "L", "School": "Babson",              "Year": "Senior"},
+    {"Number": 40, "Name": "Nick Hios",        "Position": "P",    "Bats": "L", "Throws": "L", "School": "Monmouth",            "Year": "Senior"},
 ]
 
 
