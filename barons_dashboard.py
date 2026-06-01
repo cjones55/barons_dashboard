@@ -193,22 +193,25 @@ st.markdown(
 # ============================
 
 PLAYERS = {
-    "James Aselta":    "P",
-    "Timmy Domizio":   "UTIL",
-    "Henry Silvia":    "UTIL",
-    "Jack Farnen":     "OF",
-    "Oliver Merced":   "1B",
-    "Stephen Polizzi": "C",
-    "Nick Carlucci":   "OF",
-    "Nevin Belanger":  "P",
-    "Tommy Farrell":   "P",
-    "Colin Donofrio":  "P",
-    "Chris Keating":   "P",
-    "Liam DaSilva":    "C/1B",
-    "Brett Davino":    "UTIL",
-    "Nick Dorso":      "UTIL",
-    "Brandon Skerritt":"C",
-    "Nick Petta":      "P",
+    "James Aselta":      "P",
+    "Timmy Domizio":     "UTIL",
+    "Henry Silvia":      "UTIL",
+    "Jack Farnen":       "OF",
+    "Oliver Merced":     "1B",
+    "Stephen Polizzi":   "C",
+    "Nick Carlucci":     "OF",
+    "Nevin Belanger":    "P",
+    "Tommy Farrell":     "P",
+    "Colin Donofrio":    "P",
+    "Chris Keating":     "P",
+    "Liam DaSilva":      "C/1B",
+    "Brett Davino":      "UTIL",
+    "Nick Dorso":        "UTIL",
+    "Brandon Skerritt":  "C",
+    "Nick Petta":        "P",
+    "Joel Strand":       "C",
+    "Patrick Leonard":   "OF",
+    "Christian Barboto": "P",
 }
 
 DISPLAY_TO_CSV_NAME = {}
@@ -765,8 +768,11 @@ ROSTER_DATA = [
     {"Number": 41, "Name": "Liam DaSilva",    "Position": "C/1B", "Bats": "R", "Throws": "R", "School": "Dean College",      "Year": "Freshman"},
     {"Number": 50, "Name": "Brett Davino",    "Position": "UTIL", "Bats": "L", "Throws": "R", "School": "Stony Brook",       "Year": "Senior"},
     {"Number": 55, "Name": "Nick Dorso",      "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Roanoke",           "Year": "Sophomore"},
-    {"Number": 69, "Name": "Brandon Skerritt","Position": "C",    "Bats": "R", "Throws": "R", "School": "Bentley",           "Year": "Freshman"},
-    {"Number": 72, "Name": "Nick Petta",      "Position": "P",    "Bats": "R", "Throws": "R", "School": "Roger Williams",    "Year": "Junior"},
+    {"Number": 69, "Name": "Brandon Skerritt", "Position": "C",    "Bats": "R", "Throws": "R", "School": "Bentley",              "Year": "Freshman"},
+    {"Number": 72, "Name": "Nick Petta",       "Position": "P",    "Bats": "R", "Throws": "R", "School": "Roger Williams",       "Year": "Junior"},
+    {"Number": 27, "Name": "Joel Strand",      "Position": "C",    "Bats": "R", "Throws": "R", "School": "Illinois Wesleyan",    "Year": "Junior"},
+    {"Number": 20, "Name": "Patrick Leonard",  "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 5,  "Name": "Christian Barboto","Position": "P",    "Bats": "R", "Throws": "R", "School": "Emory",               "Year": "Sophomore"},
 ]
 
 
