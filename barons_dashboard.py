@@ -212,6 +212,8 @@ PLAYERS = {
     "Joel Strand":       "C",
     "Patrick Leonard":   "OF",
     "Christian Barboto": "P",
+    "Nick Hios":         "P",
+    "Tristian Pearl":    "P",
 }
 
 DISPLAY_TO_CSV_NAME = {}
@@ -773,6 +775,8 @@ ROSTER_DATA = [
     {"Number": 27, "Name": "Joel Strand",      "Position": "C",    "Bats": "R", "Throws": "R", "School": "Illinois Wesleyan",    "Year": "Junior"},
     {"Number": 20, "Name": "Patrick Leonard",  "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
     {"Number": 5,  "Name": "Christian Barboto","Position": "P",    "Bats": "R", "Throws": "R", "School": "Emory",               "Year": "Sophomore"},
+    {"Number": 30, "Name": "Tristian Pearl",   "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 40, "Name": "Nick Hios",        "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
 ]
 
 
@@ -1557,4 +1561,3 @@ with tab2:
     EMBED_URL = "https://calendar.google.com/calendar/embed?src=ac16d5a59cd0ddef373439ba781cf326390b134ef8f52790edb33f57e92c6e7b%40group.calendar.google.com&ctz=America%2FNew_York"
 
     st.components.v1.iframe(EMBED_URL, width=800, height=600)
-
