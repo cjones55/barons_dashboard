@@ -214,6 +214,11 @@ PLAYERS = {
     "Christian Barboto": "P",
     "Nick Hios":         "P",
     "Tristian Pearl":    "P",
+    "Mike Fischetti":    "OF",
+    "Aidan O'Loughin":   "OF",
+    "Mason Kuckinski":   "UTIL",
+    "Antonio Galizia":   "1B",
+    "Charlie Ellis":     "1B",
 }
 
 DISPLAY_TO_CSV_NAME = {}
@@ -777,6 +782,11 @@ ROSTER_DATA = [
     {"Number": 5,  "Name": "Christian Barboto","Position": "P",    "Bats": "L", "Throws": "L", "School": "Emory",               "Year": "Sophomore"},
     {"Number": 30, "Name": "Tristian Pearl",   "Position": "P",    "Bats": "L", "Throws": "L", "School": "Babson",              "Year": "Senior"},
     {"Number": 40, "Name": "Nick Hios",        "Position": "P",    "Bats": "L", "Throws": "L", "School": "Monmouth",            "Year": "Senior"},
+    {"Number": 23, "Name": "Mike Fischetti",   "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 24, "Name": "Aidan O'Loughin",  "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 6,  "Name": "Mason Kuckinski",  "Position": "UTIL", "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 10, "Name": "Antonio Galizia",  "Position": "1B",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 16, "Name": "Charlie Ellis",    "Position": "1B",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
 ]
 
 
