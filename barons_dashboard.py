@@ -770,7 +770,7 @@ ROSTER_DATA = [
     {"Number": 8,  "Name": "Henry Silvia",    "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Colby",             "Year": "Junior"},
     {"Number": 9,  "Name": "Jack Farnen",     "Position": "OF",   "Bats": "L", "Throws": "L", "School": "Hobart",            "Year": "Junior"},
     {"Number": 11, "Name": "Oliver Merced",   "Position": "1B",   "Bats": "L", "Throws": "R", "School": "Amherst",           "Year": "Senior"},
-    {"Number": 13, "Name": "Stephen Polizzi", "Position": "C",    "Bats": "R", "Throws": "R", "School": "St. Peter's",       "Year": "Sophomore"},
+    {"Number": 13, "Name": "Stephen Polizzi", "Position": "C",    "Bats": "R", "Throws": "R", "School": "Campbell",         "Year": "Sophomore"},
     {"Number": 15, "Name": "Nick Carlucci",   "Position": "OF",   "Bats": "R", "Throws": "R", "School": "Pace",              "Year": "Senior"},
     {"Number": 17, "Name": "Nevin Belanger",  "Position": "P",    "Bats": "L", "Throws": "L", "School": "Johnson and Wales", "Year": "Senior"},
     {"Number": 20, "Name": "Tommy Farrell",   "Position": "P",    "Bats": "R", "Throws": "R", "School": "Gettysburg",        "Year": "Junior"},
