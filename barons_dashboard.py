@@ -788,13 +788,13 @@ ROSTER_DATA = [
     {"Number": 40, "Name": "Nick Hios",        "Position": "P",    "Bats": "L", "Throws": "L", "School": "Monmouth",            "Year": "Senior"},
     {"Number": 23, "Name": "Mike Fischetti",   "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
     {"Number": 24, "Name": "Aidan O'Loughin",  "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
-    {"Number": 6,  "Name": "Mason Kuckinski",  "Position": "UTIL", "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 6,  "Name": "Mason Kuckinski",  "Position": "UTIL", "Bats": "?", "Throws": "?", "School": "St. Anselm",          "Year": "Freshman"},
     {"Number": 10, "Name": "Antonio Galizia",  "Position": "1B",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
     {"Number": 16, "Name": "Charlie Ellis",    "Position": "1B",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
     {"Number": 19, "Name": "J Jensen",         "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
     {"Number": 18, "Name": "M Hole",           "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
-    {"Number": 22, "Name": "M Hood",           "Position": "UTIL", "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
-    {"Number": 33, "Name": "O Staller",        "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 22, "Name": "M Hood",           "Position": "UTIL", "Bats": "?", "Throws": "?", "School": "Wash U",              "Year": "Freshman"},
+    {"Number": 33, "Name": "O Staller",        "Position": "OF",   "Bats": "?", "Throws": "?", "School": "Nichols",             "Year": "Freshman"},
 ]
 
 
