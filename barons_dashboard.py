@@ -219,6 +219,10 @@ PLAYERS = {
     "Mason Kuckinski":   "UTIL",
     "Antonio Galizia":   "1B",
     "Charlie Ellis":     "1B",
+    "J Jensen":          "P",
+    "M Hole":            "P",
+    "M Hood":            "UTIL",
+    "O Staller":         "OF",
 }
 
 DISPLAY_TO_CSV_NAME = {}
@@ -787,6 +791,10 @@ ROSTER_DATA = [
     {"Number": 6,  "Name": "Mason Kuckinski",  "Position": "UTIL", "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
     {"Number": 10, "Name": "Antonio Galizia",  "Position": "1B",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
     {"Number": 16, "Name": "Charlie Ellis",    "Position": "1B",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 19, "Name": "J Jensen",         "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 18, "Name": "M Hole",           "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 22, "Name": "M Hood",           "Position": "UTIL", "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
+    {"Number": 33, "Name": "O Staller",        "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
 ]
 
 
