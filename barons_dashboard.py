@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import json
 from io import StringIO
 from PIL import Image
 import base64
@@ -12,6 +13,7 @@ import base64
 CUMULATIVE_FILE = "ct_barons_stats.csv"
 MASTER_LOG_FILE = "game_logs.csv"
 GAME_LOG_DIR = "logs"
+DEPTH_CHART_FILE = "depth_chart_ideas.json"
 COACH_PASSWORD = "jonesy34"
 
 os.makedirs(GAME_LOG_DIR, exist_ok=True)
@@ -177,6 +179,23 @@ def save_team_record(wins, losses):
     df.to_csv(TEAM_RECORD_FILE, index=False)
 
 
+def load_depth_chart_ideas():
+    if not os.path.exists(DEPTH_CHART_FILE):
+        return {}
+
+    try:
+        with open(DEPTH_CHART_FILE, "r") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_depth_chart_ideas(ideas):
+    with open(DEPTH_CHART_FILE, "w") as f:
+        json.dump(ideas, f, indent=2)
+
+
 record = load_team_record()
 st.markdown(
     f"""
@@ -219,10 +238,10 @@ PLAYERS = {
     "Mason Kuckinski":   "UTIL",
     "Antonio Galizia":   "1B",
     "Charlie Ellis":     "1B",
-    "J Jensen":          "P",
-    "M Hole":            "P",
-    "M Hood":            "UTIL",
-    "O Staller":         "OF",
+    "Jack Jensen":       "P",
+    "Merritt Hole":      "P",
+    "Mo Hood":           "UTIL",
+    "Owen Staller":      "OF",
 }
 
 DISPLAY_TO_CSV_NAME = {}
@@ -786,15 +805,15 @@ ROSTER_DATA = [
     {"Number": 5,  "Name": "Christian Barboto","Position": "P",    "Bats": "L", "Throws": "L", "School": "Emory",               "Year": "Sophomore"},
     {"Number": 30, "Name": "Tristian Pearl",   "Position": "P",    "Bats": "L", "Throws": "L", "School": "Babson",              "Year": "Senior"},
     {"Number": 40, "Name": "Nick Hios",        "Position": "P",    "Bats": "L", "Throws": "L", "School": "Monmouth",            "Year": "Senior"},
-    {"Number": 23, "Name": "Mike Fischetti",   "Position": "OF",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
-    {"Number": 24, "Name": "Aidan O'Loughin",  "Position": "OF",   "Bats": "?", "Throws": "?", "School": "Trinity College",     "Year": "Freshman"},
+    {"Number": 23, "Name": "Mike Fischetti",   "Position": "OF",   "Bats": "L", "Throws": "L", "School": "Gettysburg",          "Year": "Junior"},
+    {"Number": 24, "Name": "Aidan O'Loughin",  "Position": "OF",   "Bats": "R", "Throws": "R", "School": "Trinity College",     "Year": "Freshman"},
     {"Number": 6,  "Name": "Mason Kuckinski",  "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "St. Anselm",          "Year": "Freshman"},
     {"Number": 10, "Name": "Antonio Galizia",  "Position": "1B",   "Bats": "R", "Throws": "R", "School": "Western NE",          "Year": "Senior"},
-    {"Number": 16, "Name": "Charlie Ellis",    "Position": "1B",   "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
-    {"Number": 19, "Name": "J Jensen",         "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
-    {"Number": 18, "Name": "M Hole",           "Position": "P",    "Bats": "?", "Throws": "?", "School": "?",                   "Year": "?"},
-    {"Number": 22, "Name": "M Hood",           "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Wash U",              "Year": "Freshman"},
-    {"Number": 33, "Name": "O Staller",        "Position": "OF",   "Bats": "L", "Throws": "L", "School": "Nichols",             "Year": "Freshman"},
+    {"Number": 16, "Name": "Charlie Ellis",    "Position": "1B",   "Bats": "L", "Throws": "L", "School": "SIT",                 "Year": "Freshman"},
+    {"Number": 19, "Name": "Jack Jensen",      "Position": "P",    "Bats": "R", "Throws": "R", "School": "Bentley",             "Year": "Sophomore"},
+    {"Number": 18, "Name": "Merritt Hole",     "Position": "P",    "Bats": "R", "Throws": "R", "School": "Lafayette",           "Year": "Sophomore"},
+    {"Number": 22, "Name": "Mo Hood",          "Position": "UTIL", "Bats": "R", "Throws": "R", "School": "Wash U",              "Year": "Freshman"},
+    {"Number": 33, "Name": "Owen Staller",     "Position": "OF",   "Bats": "L", "Throws": "L", "School": "Nichols",             "Year": "Freshman"},
 ]
 
 
@@ -1247,6 +1266,107 @@ with tab7:
     if st.button("Save Team Record"):
         save_team_record(wins, losses)
         st.success(f"Record updated to {wins}-{losses}")
+
+    # ============================================================
+    # DEPTH CHART BUILDER
+    # ============================================================
+    st.subheader("Depth Chart Builder")
+
+    saved_depth_charts = load_depth_chart_ideas()
+    depth_chart_names = ["New Idea"] + sorted(saved_depth_charts.keys())
+    selected_depth_chart = st.selectbox("Saved depth chart ideas", depth_chart_names)
+
+    position_options = [
+        "", "P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH",
+        "UTIL", "C/OF", "C/1B", "INF", "OF"
+    ]
+
+    for i in range(1, 11):
+        st.session_state.setdefault(f"depth_player_{i}", "")
+        st.session_state.setdefault(f"depth_pos_{i}", "")
+    st.session_state.setdefault("depth_chart_notes", "")
+
+    if selected_depth_chart != "New Idea":
+        saved_chart = saved_depth_charts[selected_depth_chart]
+        if st.button("Load Selected Idea"):
+            for idx, slot in enumerate(saved_chart.get("lineup", []), start=1):
+                if idx > 10:
+                    break
+                st.session_state[f"depth_player_{idx}"] = slot.get("player", "")
+                st.session_state[f"depth_pos_{idx}"] = slot.get("position", "")
+            for idx in range(len(saved_chart.get("lineup", [])) + 1, 11):
+                st.session_state[f"depth_player_{idx}"] = ""
+                st.session_state[f"depth_pos_{idx}"] = ""
+            st.session_state["depth_chart_notes"] = saved_chart.get("notes", "")
+            st.rerun()
+
+        if st.button("Delete Selected Idea"):
+            saved_depth_charts.pop(selected_depth_chart, None)
+            save_depth_chart_ideas(saved_depth_charts)
+            st.success(f"Deleted depth chart idea: {selected_depth_chart}")
+            st.rerun()
+
+    depth_chart_name = st.text_input(
+        "Idea name",
+        value="" if selected_depth_chart == "New Idea" else selected_depth_chart,
+        key="depth_chart_name"
+    )
+
+    st.markdown("### Batting Order (10 Spots)")
+    depth_chart_rows = []
+    roster_options = [""] + sorted(PLAYERS.keys())
+    for i in range(1, 11):
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            player = st.selectbox(
+                f"Spot {i}",
+                roster_options,
+                key=f"depth_player_{i}"
+            )
+        with col2:
+            position = st.selectbox(
+                f"Pos {i}",
+                position_options,
+                key=f"depth_pos_{i}"
+            )
+        depth_chart_rows.append({
+            "Order": i,
+            "Player": player,
+            "Position": position
+        })
+
+    depth_chart_notes = st.text_area(
+        "Notes",
+        key="depth_chart_notes",
+        placeholder="Bench ideas, matchup notes, alternate defensive alignments..."
+    )
+
+    col_save, col_preview = st.columns([1, 2])
+    with col_save:
+        if st.button("Save Depth Chart Idea"):
+            if not depth_chart_name.strip():
+                st.error("Add an idea name before saving.")
+            else:
+                saved_depth_charts[depth_chart_name.strip()] = {
+                    "lineup": [
+                        {
+                            "order": row["Order"],
+                            "player": row["Player"],
+                            "position": row["Position"]
+                        }
+                        for row in depth_chart_rows
+                    ],
+                    "notes": depth_chart_notes
+                }
+                save_depth_chart_ideas(saved_depth_charts)
+                st.success(f"Saved depth chart idea: {depth_chart_name.strip()}")
+
+    with col_preview:
+        preview_df = pd.DataFrame(depth_chart_rows)
+        st.dataframe(preview_df, use_container_width=True, hide_index=True)
+
+    if depth_chart_notes.strip():
+        st.caption(depth_chart_notes)
 
     # ============================================================
     # GAME EDITOR (ALWAYS VISIBLE)
