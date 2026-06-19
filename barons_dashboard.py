@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import json
+import html
 from io import StringIO
 from PIL import Image
 import base64
@@ -817,6 +818,277 @@ ROSTER_DATA = [
 ]
 
 
+ROSTER_LOOKUP = {row["Name"]: row for row in ROSTER_DATA}
+
+
+def build_player_snapshot(player_name, df_hitters, df_pitchers):
+    roster_row = ROSTER_LOOKUP.get(player_name, {})
+    hitter_row = None
+    pitcher_row = None
+
+    if df_hitters is not None and not df_hitters.empty:
+        match = df_hitters[df_hitters["Name"] == player_name]
+        if not match.empty:
+            hitter_row = match.iloc[0]
+
+    if df_pitchers is not None and not df_pitchers.empty:
+        match = df_pitchers[df_pitchers["Name"] == player_name]
+        if not match.empty:
+            pitcher_row = match.iloc[0]
+
+    return {
+        "Player": player_name,
+        "Pos": roster_row.get("Position", PLAYERS.get(player_name, "")),
+        "B/T": f"{roster_row.get('Bats', '-')}/{roster_row.get('Throws', '-')}",
+        "School": roster_row.get("School", ""),
+        "Year": roster_row.get("Year", ""),
+        "AVG": f"{float(hitter_row['AVG']):.3f}" if hitter_row is not None and "AVG" in hitter_row else "—",
+        "OPS": f"{float(hitter_row['OPS']):.3f}" if hitter_row is not None and "OPS" in hitter_row else "—",
+        "HR": int(hitter_row["HR"]) if hitter_row is not None and "HR" in hitter_row else 0,
+        "RBI": int(hitter_row["RBI"]) if hitter_row is not None and "RBI" in hitter_row else 0,
+        "SB": int(hitter_row["SB"]) if hitter_row is not None and "SB" in hitter_row else 0,
+        "IP": f"{float(pitcher_row['IP']):.1f}" if pitcher_row is not None and "IP" in pitcher_row else "—",
+        "ERA": f"{float(pitcher_row['ERA']):.2f}" if pitcher_row is not None and "ERA" in pitcher_row else "—",
+        "SO": int(pitcher_row["SO"]) if pitcher_row is not None and "SO" in pitcher_row else 0,
+    }
+
+
+def make_snapshot_df(players, df_hitters, df_pitchers):
+    rows = [build_player_snapshot(player, df_hitters, df_pitchers) for player in players if player]
+    return pd.DataFrame(rows) if rows else pd.DataFrame()
+
+
+def file_to_data_uri(path):
+    if not os.path.exists(path):
+        return ""
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    return f"data:image/png;base64,{encoded}"
+
+
+def lineup_card_name(player_name):
+    if not player_name:
+        return "—"
+    pieces = str(player_name).strip().split()
+    return pieces[-1].upper() if pieces else "—"
+
+
+def render_lineup_card_html(logo_uri, card_meta, lineup_rows, sub_rows, bench_rows, pitcher_rows, notes):
+    def cell(value):
+        return html.escape(str(value if value not in [None, ""] else "—"))
+
+    lineup_html = "".join(
+        f"""
+        <tr>
+            <td class="order-cell">{cell(row.get('Order'))}</td>
+            <td>{cell(lineup_card_name(row.get('Player', '')))}</td>
+            <td class="pos-cell">{cell(row.get('Position') or '—')}</td>
+        </tr>
+        """
+        for row in lineup_rows
+    )
+
+    subs_html = "".join(
+        f"""
+        <tr>
+            <td class="order-cell">{cell(row.get('Order'))}</td>
+            <td class="accent-cell">{cell(lineup_card_name(row.get('PlayerIn', '')))}</td>
+            <td class="accent-cell">{cell(row.get('ForLabel', '—'))}</td>
+            <td>{cell(lineup_card_name(row.get('PlayerOut', '')))}</td>
+            <td class="pos-cell">{cell(row.get('Pos', '—'))}</td>
+        </tr>
+        """
+        for row in sub_rows
+    )
+
+    bench_html = "".join(
+        f"<tr><td>{cell(lineup_card_name(player))}</td></tr>"
+        for player in bench_rows
+    ) or "<tr><td>&nbsp;</td></tr>" * 5
+
+    pitchers_html = "".join(
+        f"""
+        <tr>
+            <td>{cell(lineup_card_name(row.get('Pitcher', '')))}</td>
+            <td class="usage-cell">{cell(row.get('Usage', '—'))}</td>
+        </tr>
+        """
+        for row in pitcher_rows
+    ) or "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>" * 5
+
+    return f"""
+    <style>
+    .lineup-card-sheet {{
+        background: radial-gradient(circle at top, #ffffff 0%, #f7f7f7 45%, #efefef 100%);
+        color: #111111;
+        border: 2px solid #1a1a1a;
+        padding: 14px;
+        margin-top: 12px;
+        font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+        letter-spacing: 0.02em;
+    }}
+    .lineup-card-header {{
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 18px;
+    }}
+    .lineup-card-header-line {{
+        height: 5px;
+        background: #ff5a0a;
+    }}
+    .lineup-card-logo {{
+        max-width: 420px;
+        width: 100%;
+        display: block;
+        margin: 0 auto;
+    }}
+    .lineup-card-meta {{
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+        margin-bottom: 14px;
+        font-size: 1.15rem;
+    }}
+    .lineup-card-meta-box {{
+        border-bottom: 4px solid #1a1a1a;
+        padding-bottom: 6px;
+        text-transform: uppercase;
+    }}
+    .lineup-card-grid {{
+        display: grid;
+        grid-template-columns: 1.02fr 1.65fr;
+        gap: 18px;
+        margin-bottom: 16px;
+    }}
+    .lineup-card-lower {{
+        display: grid;
+        grid-template-columns: 1fr 1.15fr;
+        gap: 18px;
+        margin-bottom: 16px;
+    }}
+    .lineup-card-panel-title {{
+        background: #050505;
+        color: #ffffff;
+        text-align: center;
+        font-size: 1.5rem;
+        padding: 10px 8px;
+        text-transform: uppercase;
+        border: 2px solid #222222;
+        border-bottom: none;
+    }}
+    .lineup-card-table {{
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: rgba(255,255,255,0.95);
+    }}
+    .lineup-card-table th,
+    .lineup-card-table td {{
+        border: 2px solid rgba(20,20,20,0.45);
+        padding: 10px 12px;
+        font-size: 1.05rem;
+        text-transform: uppercase;
+    }}
+    .lineup-card-table th {{
+        background: #080808;
+        color: #ffffff;
+        font-size: 0.98rem;
+    }}
+    .lineup-card-table th.accent-head {{
+        color: #ff5a0a;
+    }}
+    .lineup-card-table td.order-cell {{
+        color: #ff5a0a;
+        text-align: center;
+        width: 52px;
+        font-size: 1.35rem;
+    }}
+    .lineup-card-table td.pos-cell,
+    .lineup-card-table td.usage-cell {{
+        text-align: center;
+    }}
+    .lineup-card-table td.accent-cell {{
+        color: #ff5a0a;
+    }}
+    .lineup-card-notes-title {{
+        font-size: 1.2rem;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }}
+    .lineup-card-notes-box {{
+        min-height: 96px;
+        border: 2px solid rgba(20,20,20,0.45);
+        background: rgba(255,255,255,0.9);
+        padding: 14px;
+        font-size: 1rem;
+        text-transform: uppercase;
+    }}
+    .lineup-card-mark {{
+        display: flex;
+        justify-content: flex-end;
+        font-size: 4rem;
+        color: #111111;
+        -webkit-text-stroke: 2px #ff5a0a;
+        line-height: 1;
+    }}
+    </style>
+    <div class="lineup-card-sheet">
+        <div class="lineup-card-header">
+            <div class="lineup-card-header-line"></div>
+            <div>{f'<img src="{logo_uri}" class="lineup-card-logo" />' if logo_uri else 'BARONS'}</div>
+            <div class="lineup-card-header-line"></div>
+        </div>
+        <div class="lineup-card-meta">
+            <div class="lineup-card-meta-box">Game: {cell(card_meta.get('game', ''))}</div>
+            <div class="lineup-card-meta-box">Date: {cell(card_meta.get('date', ''))}</div>
+            <div class="lineup-card-meta-box">Opponent: {cell(card_meta.get('opponent', ''))}</div>
+            <div class="lineup-card-meta-box">First Pitch: {cell(card_meta.get('first_pitch', ''))}</div>
+        </div>
+        <div class="lineup-card-grid">
+            <div>
+                <div class="lineup-card-panel-title">Lineup</div>
+                <table class="lineup-card-table">
+                    <thead>
+                        <tr><th style="width:52px;">Order</th><th>Player</th><th style="width:68px;">Pos</th></tr>
+                    </thead>
+                    <tbody>{lineup_html}</tbody>
+                </table>
+            </div>
+            <div>
+                <div class="lineup-card-panel-title">{cell(card_meta.get('sub_title', 'Substitutions'))}</div>
+                <table class="lineup-card-table">
+                    <thead>
+                        <tr>
+                            <th style="width:52px;">Order</th>
+                            <th class="accent-head">Player In</th>
+                            <th class="accent-head">For</th>
+                            <th>Player Out</th>
+                            <th style="width:68px;">Pos</th>
+                        </tr>
+                    </thead>
+                    <tbody>{subs_html}</tbody>
+                </table>
+            </div>
+        </div>
+        <div class="lineup-card-lower">
+            <div>
+                <div class="lineup-card-panel-title">Bench / Available</div>
+                <table class="lineup-card-table"><tbody>{bench_html}</tbody></table>
+            </div>
+            <div>
+                <div class="lineup-card-panel-title">Live Pitchers</div>
+                <table class="lineup-card-table"><tbody>{pitchers_html}</tbody></table>
+            </div>
+        </div>
+        <div class="lineup-card-notes-title">Notes:</div>
+        <div class="lineup-card-notes-box">{cell(notes)}</div>
+        <div class="lineup-card-mark">B</div>
+    </div>
+    """
+
+
 
 # ============================
 # UI TABS
@@ -1273,18 +1545,55 @@ with tab7:
     st.subheader("Depth Chart Builder")
 
     saved_depth_charts = load_depth_chart_ideas()
+    ensure_cumulative_exists()
+    df_hitters_coach, df_pitchers_coach = load_cumulative()
     depth_chart_names = ["New Idea"] + sorted(saved_depth_charts.keys())
     selected_depth_chart = st.selectbox("Saved depth chart ideas", depth_chart_names)
 
     position_options = [
-        "", "P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH",
+        "", "P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "EH",
+        "1", "2", "3", "4", "5", "6", "7", "8", "9",
         "UTIL", "C/OF", "C/1B", "INF", "OF"
+    ]
+    pitcher_pool = sorted(
+        [
+            player for player, pos in PLAYERS.items()
+            if "P" in str(pos).upper()
+        ]
+    )
+    bullpen_role_labels = [
+        ("rotation_starter_1", "Starter 1"),
+        ("rotation_starter_2", "Starter 2"),
+        ("rotation_starter_3", "Starter 3"),
+        ("rotation_starter_4", "Starter 4"),
+        ("rotation_starter_5", "Starter 5"),
+        ("rotation_closer", "Closer"),
+        ("rotation_setup", "Setup"),
+        ("rotation_fireman", "Fireman"),
+        ("rotation_long_relief", "Long Relief"),
     ]
 
     for i in range(1, 11):
         st.session_state.setdefault(f"depth_player_{i}", "")
         st.session_state.setdefault(f"depth_pos_{i}", "")
     st.session_state.setdefault("depth_chart_notes", "")
+    st.session_state.setdefault("depth_chart_bench", [])
+    st.session_state.setdefault("depth_chart_inactive", [])
+    st.session_state.setdefault("rotation_notes", "")
+    st.session_state.setdefault("lineup_card_game", "1")
+    st.session_state.setdefault("lineup_card_date", "")
+    st.session_state.setdefault("lineup_card_opponent", "")
+    st.session_state.setdefault("lineup_card_first_pitch", "")
+    st.session_state.setdefault("lineup_card_sub_title", "Substitutions")
+    st.session_state.setdefault("lineup_card_notes", "")
+    for rotation_key, _ in bullpen_role_labels:
+        st.session_state.setdefault(rotation_key, "")
+        st.session_state.setdefault(f"card_pitch_usage_{rotation_key}", "")
+    for idx in range(1, 11):
+        st.session_state.setdefault(f"card_sub_in_{idx}", "")
+        st.session_state.setdefault(f"card_sub_for_{idx}", "")
+        st.session_state.setdefault(f"card_sub_out_{idx}", "")
+        st.session_state.setdefault(f"card_sub_pos_{idx}", "")
 
     if selected_depth_chart != "New Idea":
         saved_chart = saved_depth_charts[selected_depth_chart]
@@ -1298,6 +1607,29 @@ with tab7:
                 st.session_state[f"depth_player_{idx}"] = ""
                 st.session_state[f"depth_pos_{idx}"] = ""
             st.session_state["depth_chart_notes"] = saved_chart.get("notes", "")
+            st.session_state["depth_chart_bench"] = saved_chart.get("bench", [])
+            st.session_state["depth_chart_inactive"] = saved_chart.get("inactive", [])
+            saved_rotation = saved_chart.get("rotation", {})
+            for rotation_key, _ in bullpen_role_labels:
+                st.session_state[rotation_key] = saved_rotation.get(rotation_key, "")
+            st.session_state["rotation_notes"] = saved_rotation.get("notes", "")
+            saved_lineup_card = saved_chart.get("lineup_card", {})
+            st.session_state["lineup_card_game"] = saved_lineup_card.get("game", "1")
+            st.session_state["lineup_card_date"] = saved_lineup_card.get("date", "")
+            st.session_state["lineup_card_opponent"] = saved_lineup_card.get("opponent", "")
+            st.session_state["lineup_card_first_pitch"] = saved_lineup_card.get("first_pitch", "")
+            st.session_state["lineup_card_sub_title"] = saved_lineup_card.get("sub_title", "Substitutions")
+            st.session_state["lineup_card_notes"] = saved_lineup_card.get("notes", "")
+            saved_subs = saved_lineup_card.get("subs", [])
+            for idx in range(1, 11):
+                row = saved_subs[idx - 1] if idx - 1 < len(saved_subs) else {}
+                st.session_state[f"card_sub_in_{idx}"] = row.get("player_in", "")
+                st.session_state[f"card_sub_for_{idx}"] = row.get("for_label", "")
+                st.session_state[f"card_sub_out_{idx}"] = row.get("player_out", "")
+                st.session_state[f"card_sub_pos_{idx}"] = row.get("pos", "")
+            saved_usage = saved_lineup_card.get("pitch_usage", {})
+            for rotation_key, _ in bullpen_role_labels:
+                st.session_state[f"card_pitch_usage_{rotation_key}"] = saved_usage.get(rotation_key, "")
             st.rerun()
 
         if st.button("Delete Selected Idea"):
@@ -1312,22 +1644,150 @@ with tab7:
         key="depth_chart_name"
     )
 
+    st.markdown(
+        """
+        <style>
+        .depth-card {
+            background: linear-gradient(135deg, #181818 0%, #0f0f0f 100%);
+            border: 1px solid #333333;
+            border-left: 6px solid #FF6F00;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+        .depth-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .depth-slot-badge {
+            display: inline-block;
+            background: #FF6F00;
+            color: #000000;
+            font-weight: 800;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.9rem;
+        }
+        .depth-slot-label {
+            color: #FFA040;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+        .lineup-preview-card {
+            background: linear-gradient(160deg, #101010 0%, #1b1b1b 100%);
+            border: 1px solid #333333;
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .lineup-preview-row {
+            display: grid;
+            grid-template-columns: 56px 1fr 70px;
+            gap: 10px;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .lineup-preview-row:last-child {
+            border-bottom: none;
+        }
+        .lineup-preview-order {
+            color: #FF6F00;
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+        .lineup-preview-player {
+            color: #FFFFFF;
+            font-weight: 700;
+        }
+        .lineup-preview-empty {
+            color: #7a7a7a;
+            font-style: italic;
+        }
+        .lineup-preview-pos {
+            color: #000000;
+            background: #FFA040;
+            border-radius: 999px;
+            text-align: center;
+            padding: 3px 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .coach-panel {
+            background: linear-gradient(145deg, #121212 0%, #1c1c1c 100%);
+            border: 1px solid #2e2e2e;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .coach-panel h4 {
+            margin: 0 0 10px 0;
+            color: #FFA040 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.markdown("### Batting Order (10 Spots)")
     depth_chart_rows = []
-    roster_options = [""] + sorted(PLAYERS.keys())
+    inactive_players = st.multiselect(
+        "Out / inactive today",
+        sorted(PLAYERS.keys()),
+        default=st.session_state.get("depth_chart_inactive", []),
+        key="depth_chart_inactive",
+        help="Players listed here stay off the auto bench list and are separated from active options."
+    )
+    active_roster = [player for player in sorted(PLAYERS.keys()) if player not in inactive_players]
+    preview_rows = []
     for i in range(1, 11):
-        col1, col2 = st.columns([2, 1])
+        current_player = st.session_state.get(f"depth_player_{i}", "")
+        player_options = [""] + active_roster
+        if current_player and current_player not in player_options:
+            player_options.append(current_player)
+        st.markdown(
+            f"""
+            <div class="depth-card">
+                <div class="depth-card-header">
+                    <span class="depth-slot-badge">#{i}</span>
+                    <span class="depth-slot-label">Batting Order Spot</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        col1, col2, col3 = st.columns([2.2, 1, 0.8])
         with col1:
             player = st.selectbox(
-                f"Spot {i}",
-                roster_options,
-                key=f"depth_player_{i}"
+                f"Player {i}",
+                player_options,
+                key=f"depth_player_{i}",
+                label_visibility="collapsed"
             )
         with col2:
             position = st.selectbox(
                 f"Pos {i}",
                 position_options,
-                key=f"depth_pos_{i}"
+                key=f"depth_pos_{i}",
+                label_visibility="collapsed"
+            )
+        with col3:
+            if st.button("Clear", key=f"clear_depth_{i}"):
+                st.session_state[f"depth_player_{i}"] = ""
+                st.session_state[f"depth_pos_{i}"] = ""
+                st.rerun()
+
+        if player:
+            preview_rows.append(
+                {
+                    "order": i,
+                    "player": player,
+                    "position": position or "--"
+                }
             )
         depth_chart_rows.append({
             "Order": i,
@@ -1335,10 +1795,227 @@ with tab7:
             "Position": position
         })
 
+    selected_players = [row["Player"] for row in depth_chart_rows if row["Player"]]
+    duplicate_players = sorted({player for player in selected_players if selected_players.count(player) > 1})
+    inactive_in_lineup = [player for player in selected_players if player in inactive_players]
+    open_spots = sum(1 for row in depth_chart_rows if not row["Player"])
+    unused_players = [player for player in active_roster if player not in selected_players]
+
+    metric_a, metric_b, metric_c, metric_d = st.columns(4)
+    metric_a.metric("Filled Spots", f"{10 - open_spots}/10")
+    metric_b.metric("Bench Available", len(unused_players))
+    metric_c.metric("Duplicate Players", len(duplicate_players))
+    metric_d.metric("Out / Inactive", len(inactive_players))
+
+    if duplicate_players:
+        st.warning("Duplicate players in lineup: " + ", ".join(duplicate_players))
+    if inactive_in_lineup:
+        st.warning("Inactive players currently in lineup: " + ", ".join(inactive_in_lineup))
+
+    current_bench = st.session_state.get("depth_chart_bench", [])
+    bench_options = unused_players + [player for player in current_bench if player not in unused_players]
+    bench_players = st.multiselect(
+        "Bench / alternates",
+        bench_options,
+        default=current_bench,
+        key="depth_chart_bench"
+    )
+
+    if st.button("Auto-fill Bench With Unused Players"):
+        st.session_state["depth_chart_bench"] = unused_players
+        st.rerun()
+
+    st.markdown("### Player Snapshot Board")
+    lineup_snapshot = make_snapshot_df(selected_players, df_hitters_coach, df_pitchers_coach)
+    bench_snapshot = make_snapshot_df(bench_players, df_hitters_coach, df_pitchers_coach)
+    inactive_snapshot = make_snapshot_df(inactive_players, df_hitters_coach, df_pitchers_coach)
+
+    snapshot_col1, snapshot_col2 = st.columns([2, 1])
+    with snapshot_col1:
+        st.markdown('<div class="coach-panel"><h4>Projected Lineup Stats</h4></div>', unsafe_allow_html=True)
+        if lineup_snapshot.empty:
+            st.info("Add players to the lineup to see their hitting and pitching snapshots.")
+        else:
+            lineup_snapshot.insert(0, "Order", list(range(1, len(lineup_snapshot) + 1)))
+            st.dataframe(
+                lineup_snapshot[["Order", "Player", "Pos", "B/T", "Year", "AVG", "OPS", "HR", "RBI", "SB", "IP", "ERA", "SO"]],
+                use_container_width=True,
+                hide_index=True
+            )
+    with snapshot_col2:
+        st.markdown('<div class="coach-panel"><h4>Bench And Availability</h4></div>', unsafe_allow_html=True)
+        if not bench_snapshot.empty:
+            st.markdown("**Bench**")
+            st.dataframe(
+                bench_snapshot[["Player", "Pos", "AVG", "OPS", "IP", "ERA"]],
+                use_container_width=True,
+                hide_index=True
+            )
+        if not inactive_snapshot.empty:
+            st.markdown("**Out / Inactive**")
+            st.dataframe(
+                inactive_snapshot[["Player", "Pos", "Year", "School"]],
+                use_container_width=True,
+                hide_index=True
+            )
+
     depth_chart_notes = st.text_area(
         "Notes",
         key="depth_chart_notes",
-        placeholder="Bench ideas, matchup notes, alternate defensive alignments..."
+        placeholder="Bench ideas, matchup notes, alternate defensive alignments, courtesy runners, late defense..."
+    )
+
+    st.markdown("### Pitching Plan")
+    rotation_col1, rotation_col2 = st.columns([1.3, 1])
+    with rotation_col1:
+        st.markdown('<div class="coach-panel"><h4>Rotation And Bullpen Roles</h4></div>', unsafe_allow_html=True)
+        for idx in range(0, len(bullpen_role_labels), 3):
+            role_cols = st.columns(3)
+            for col, (rotation_key, rotation_label) in zip(role_cols, bullpen_role_labels[idx:idx + 3]):
+                with col:
+                    st.selectbox(
+                        rotation_label,
+                        [""] + pitcher_pool,
+                        key=rotation_key
+                    )
+        rotation_notes = st.text_area(
+            "Pitching notes",
+            key="rotation_notes",
+            placeholder="Weekend plan, pitch limits, short-rest flags, who can close, who is down today..."
+        )
+    with rotation_col2:
+        st.markdown('<div class="coach-panel"><h4>Pitching Board</h4></div>', unsafe_allow_html=True)
+        rotation_rows = []
+        for rotation_key, rotation_label in bullpen_role_labels:
+            pitcher_name = st.session_state.get(rotation_key, "")
+            if pitcher_name:
+                snapshot = build_player_snapshot(pitcher_name, df_hitters_coach, df_pitchers_coach)
+                rotation_rows.append(
+                    {
+                        "Role": rotation_label,
+                        "Pitcher": pitcher_name,
+                        "IP": snapshot["IP"],
+                        "ERA": snapshot["ERA"],
+                        "SO": snapshot["SO"],
+                        "B/T": snapshot["B/T"],
+                    }
+                )
+
+        if rotation_rows:
+            st.dataframe(pd.DataFrame(rotation_rows), use_container_width=True, hide_index=True)
+        else:
+            st.info("Pick starters and bullpen roles to build your pitching board.")
+
+    st.markdown("### Printable Lineup Card")
+    card_meta_col1, card_meta_col2, card_meta_col3, card_meta_col4 = st.columns(4)
+    with card_meta_col1:
+        lineup_card_game = st.text_input("Game #", key="lineup_card_game")
+    with card_meta_col2:
+        lineup_card_date = st.text_input("Card date", key="lineup_card_date", placeholder="6/17")
+    with card_meta_col3:
+        lineup_card_opponent = st.text_input("Card opponent", key="lineup_card_opponent")
+    with card_meta_col4:
+        lineup_card_first_pitch = st.text_input("First pitch", key="lineup_card_first_pitch", placeholder="7:00 PM")
+
+    lineup_card_sub_title = st.text_input(
+        "Substitution header",
+        key="lineup_card_sub_title",
+        placeholder="Top of 5th inning substitutions"
+    )
+
+    st.markdown("#### Substitution Grid")
+    sub_roster_options = [""] + sorted(PLAYERS.keys())
+    card_sub_rows = []
+    for idx in range(1, 11):
+        sub_cols = st.columns([0.7, 1.6, 1.2, 1.6, 0.8])
+        with sub_cols[0]:
+            st.markdown(f"**{idx}**")
+        with sub_cols[1]:
+            player_in = st.selectbox(
+                f"Player in {idx}",
+                sub_roster_options,
+                key=f"card_sub_in_{idx}",
+                label_visibility="collapsed"
+            )
+        with sub_cols[2]:
+            for_label = st.text_input(
+                f"For label {idx}",
+                key=f"card_sub_for_{idx}",
+                placeholder="IN FOR / NEW POS",
+                label_visibility="collapsed"
+            )
+        with sub_cols[3]:
+            player_out = st.selectbox(
+                f"Player out {idx}",
+                sub_roster_options,
+                key=f"card_sub_out_{idx}",
+                label_visibility="collapsed"
+            )
+        with sub_cols[4]:
+            sub_pos = st.text_input(
+                f"Sub pos {idx}",
+                key=f"card_sub_pos_{idx}",
+                placeholder="POS",
+                label_visibility="collapsed"
+            )
+        card_sub_rows.append(
+            {
+                "Order": idx,
+                "PlayerIn": player_in,
+                "ForLabel": for_label,
+                "PlayerOut": player_out,
+                "Pos": sub_pos,
+            }
+        )
+
+    st.markdown("#### Pitcher Usage For Card")
+    lineup_card_pitchers = []
+    for rotation_key, rotation_label in bullpen_role_labels:
+        pitcher_name = st.session_state.get(rotation_key, "")
+        if not pitcher_name:
+            continue
+        usage_cols = st.columns([1.2, 1.4])
+        with usage_cols[0]:
+            st.markdown(f"**{rotation_label}: {pitcher_name}**")
+        with usage_cols[1]:
+            usage = st.text_input(
+                f"{rotation_label} usage",
+                key=f"card_pitch_usage_{rotation_key}",
+                placeholder="1 inning / 1-2 innings"
+            )
+        lineup_card_pitchers.append({"Role": rotation_label, "Pitcher": pitcher_name, "Usage": usage})
+
+    lineup_card_notes = st.text_area(
+        "Lineup card notes",
+        key="lineup_card_notes",
+        placeholder="Baserunning reminders, defensive priorities, matchup notes..."
+    )
+
+    logo_uri = file_to_data_uri(os.path.join(os.getcwd(), "barons_logo.png"))
+    card_meta = {
+        "game": lineup_card_game,
+        "date": lineup_card_date,
+        "opponent": lineup_card_opponent,
+        "first_pitch": lineup_card_first_pitch,
+        "sub_title": lineup_card_sub_title or "Substitutions",
+    }
+    lineup_card_html = render_lineup_card_html(
+        logo_uri,
+        card_meta,
+        depth_chart_rows,
+        card_sub_rows,
+        bench_players,
+        lineup_card_pitchers,
+        lineup_card_notes,
+    )
+
+    st.markdown("#### Lineup Card Preview")
+    st.markdown(lineup_card_html, unsafe_allow_html=True)
+    st.download_button(
+        "Download Lineup Card HTML",
+        lineup_card_html,
+        file_name="barons_lineup_card.html",
+        mime="text/html"
     )
 
     col_save, col_preview = st.columns([1, 2])
@@ -1356,17 +2033,96 @@ with tab7:
                         }
                         for row in depth_chart_rows
                     ],
-                    "notes": depth_chart_notes
+                    "bench": bench_players,
+                    "inactive": inactive_players,
+                    "notes": depth_chart_notes,
+                    "rotation": {
+                        **{rotation_key: st.session_state.get(rotation_key, "") for rotation_key, _ in bullpen_role_labels},
+                        "notes": rotation_notes,
+                    },
+                    "lineup_card": {
+                        "game": lineup_card_game,
+                        "date": lineup_card_date,
+                        "opponent": lineup_card_opponent,
+                        "first_pitch": lineup_card_first_pitch,
+                        "sub_title": lineup_card_sub_title,
+                        "notes": lineup_card_notes,
+                        "subs": [
+                            {
+                                "player_in": row["PlayerIn"],
+                                "for_label": row["ForLabel"],
+                                "player_out": row["PlayerOut"],
+                                "pos": row["Pos"],
+                            }
+                            for row in card_sub_rows
+                        ],
+                        "pitch_usage": {
+                            rotation_key: st.session_state.get(f"card_pitch_usage_{rotation_key}", "")
+                            for rotation_key, _ in bullpen_role_labels
+                        },
+                    },
                 }
                 save_depth_chart_ideas(saved_depth_charts)
                 st.success(f"Saved depth chart idea: {depth_chart_name.strip()}")
 
+        if st.button("Start Fresh"):
+            for idx in range(1, 11):
+                st.session_state[f"depth_player_{idx}"] = ""
+                st.session_state[f"depth_pos_{idx}"] = ""
+            st.session_state["depth_chart_notes"] = ""
+            st.session_state["depth_chart_bench"] = []
+            st.session_state["depth_chart_inactive"] = []
+            st.session_state["rotation_notes"] = ""
+            st.session_state["lineup_card_game"] = "1"
+            st.session_state["lineup_card_date"] = ""
+            st.session_state["lineup_card_opponent"] = ""
+            st.session_state["lineup_card_first_pitch"] = ""
+            st.session_state["lineup_card_sub_title"] = "Substitutions"
+            st.session_state["lineup_card_notes"] = ""
+            for rotation_key, _ in bullpen_role_labels:
+                st.session_state[rotation_key] = ""
+                st.session_state[f"card_pitch_usage_{rotation_key}"] = ""
+            for idx in range(1, 11):
+                st.session_state[f"card_sub_in_{idx}"] = ""
+                st.session_state[f"card_sub_for_{idx}"] = ""
+                st.session_state[f"card_sub_out_{idx}"] = ""
+                st.session_state[f"card_sub_pos_{idx}"] = ""
+            st.rerun()
+
     with col_preview:
-        preview_df = pd.DataFrame(depth_chart_rows)
-        st.dataframe(preview_df, use_container_width=True, hide_index=True)
+        st.markdown("### Lineup Card Preview")
+        preview_html = ['<div class="lineup-preview-card">']
+        for row in depth_chart_rows:
+            player_display = row["Player"] if row["Player"] else '<span class="lineup-preview-empty">Open spot</span>'
+            pos_display = row["Position"] if row["Position"] else "--"
+            preview_html.append(
+                f"""
+                <div class="lineup-preview-row">
+                    <div class="lineup-preview-order">#{row['Order']}</div>
+                    <div class="lineup-preview-player">{player_display}</div>
+                    <div class="lineup-preview-pos">{pos_display}</div>
+                </div>
+                """
+            )
+        preview_html.append("</div>")
+        st.markdown("".join(preview_html), unsafe_allow_html=True)
+
+        if bench_players:
+            st.markdown("### Bench")
+            st.write(", ".join(bench_players))
+
+        if inactive_players:
+            st.markdown("### Out / Inactive")
+            st.write(", ".join(inactive_players))
+
+        if rotation_rows:
+            st.markdown("### Pitching Plan")
+            st.dataframe(pd.DataFrame(rotation_rows), use_container_width=True, hide_index=True)
 
     if depth_chart_notes.strip():
         st.caption(depth_chart_notes)
+    if rotation_notes.strip():
+        st.caption(f"Pitching notes: {rotation_notes}")
 
     # ============================================================
     # GAME EDITOR (ALWAYS VISIBLE)
