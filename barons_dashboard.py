@@ -4,7 +4,8 @@ import os
 import json
 import html
 from io import StringIO
-from PIL import Image
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
 import base64
 
 # ============================
@@ -1089,6 +1090,226 @@ def render_lineup_card_html(logo_uri, card_meta, lineup_rows, sub_rows, bench_ro
     """
 
 
+LINEUP_CARD_FONT_PATHS = [
+    "/System/Library/Fonts/Supplemental/Impact.ttf",
+    "/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Narrow Bold.ttf",
+]
+
+
+def load_lineup_card_font(size):
+    for path in LINEUP_CARD_FONT_PATHS:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size=size)
+            except OSError:
+                continue
+    return ImageFont.load_default()
+
+
+def fit_font(draw, text, max_width, start_size, min_size=14):
+    size = start_size
+    while size >= min_size:
+        font = load_lineup_card_font(size)
+        bbox = draw.textbbox((0, 0), str(text), font=font)
+        width = bbox[2] - bbox[0]
+        if width <= max_width:
+            return font
+        size -= 1
+    return load_lineup_card_font(min_size)
+
+
+def draw_centered_text(draw, box, text, fill, font):
+    x1, y1, x2, y2 = box
+    bbox = draw.textbbox((0, 0), str(text), font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    draw.text(
+        (x1 + (x2 - x1 - text_w) / 2, y1 + (y2 - y1 - text_h) / 2 - 2),
+        str(text),
+        fill=fill,
+        font=font,
+    )
+
+
+def draw_left_text(draw, x, y, text, fill, font):
+    draw.text((x, y), str(text), fill=fill, font=font)
+
+
+def draw_table(draw, x, y, width, title, headers, rows, col_widths, row_height, title_height=56, header_height=52):
+    black = "#050505"
+    border = "#444444"
+    orange = "#ff5a0a"
+    white = "#ffffff"
+    title_font = load_lineup_card_font(30)
+    header_font = load_lineup_card_font(23)
+    body_font = load_lineup_card_font(24)
+    order_font = load_lineup_card_font(30)
+
+    draw.rectangle([x, y, x + width, y + title_height], fill=black, outline=border, width=2)
+    draw_centered_text(draw, (x, y, x + width, y + title_height), title, white, title_font)
+
+    top = y + title_height
+    draw.rectangle([x, top, x + width, top + header_height], fill=black, outline=border, width=2)
+
+    left = x
+    for idx, header in enumerate(headers):
+        col_w = col_widths[idx]
+        draw.rectangle([left, top, left + col_w, top + header_height], outline=border, width=2)
+        header_fill = orange if header in {"PLAYER IN", "FOR"} else white
+        header_font_fit = fit_font(draw, header, col_w - 10, 23, 16)
+        draw_centered_text(draw, (left, top, left + col_w, top + header_height), header, header_fill, header_font_fit)
+        left += col_w
+
+    current_y = top + header_height
+    for row in rows:
+        left = x
+        for idx, value in enumerate(row):
+            col_w = col_widths[idx]
+            draw.rectangle([left, current_y, left + col_w, current_y + row_height], outline=border, width=2)
+            fill = orange if idx == 0 else "#111111"
+            font = order_font if idx == 0 else fit_font(draw, value, col_w - 14, 24, 15)
+            draw_centered_text(draw, (left, current_y, left + col_w, current_y + row_height), value, fill, font)
+            left += col_w
+        current_y += row_height
+
+    return current_y
+
+
+def render_lineup_card_image(logo_path, card_meta, lineup_rows, sub_rows, bench_rows, pitcher_rows, notes):
+    orange = "#ff5a0a"
+    black = "#080808"
+    dark = "#111111"
+    border = "#3d3d3d"
+    white = "#ffffff"
+    bg = "#f7f7f5"
+    width, height = 1700, 2550
+    image = Image.new("RGB", (width, height), bg)
+    draw = ImageDraw.Draw(image)
+
+    draw.rectangle([12, 12, width - 12, height - 12], outline=border, width=3)
+
+    header_y = 38
+    line_y = 145
+    draw.rectangle([40, line_y, 330, line_y + 7], fill=orange)
+    draw.rectangle([width - 330, line_y, width - 40, line_y + 7], fill=orange)
+    if os.path.exists(logo_path):
+        logo = Image.open(logo_path).convert("RGBA")
+        max_w, max_h = 760, 240
+        logo.thumbnail((max_w, max_h))
+        image.paste(logo, ((width - logo.width) // 2, header_y), logo)
+    else:
+        fallback_font = load_lineup_card_font(120)
+        draw_centered_text(draw, (420, 30, width - 420, 220), "BARONS", black, fallback_font)
+
+    meta_font = load_lineup_card_font(34)
+    meta_boxes = [
+        ("GAME:", card_meta.get("game", "")),
+        ("DATE:", card_meta.get("date", "")),
+        ("OPPONENT:", card_meta.get("opponent", "")),
+        ("FIRST PITCH:", card_meta.get("first_pitch", "")),
+    ]
+    meta_y = 240
+    meta_xs = [40, 610, 900, 1350]
+    meta_widths = [520, 210, 390, 300]
+    for (label, value), x, box_w in zip(meta_boxes, meta_xs, meta_widths):
+        draw_left_text(draw, x, meta_y, f"{label} {value}", dark, fit_font(draw, f"{label} {value}", box_w - 12, 34, 18))
+        draw.rectangle([x, meta_y + 68, x + box_w, meta_y + 72], fill=dark)
+
+    lineup_table_rows = [
+        [str(row.get("Order", "")), lineup_card_name(row.get("Player", "")), row.get("Position") or "—"]
+        for row in lineup_rows
+    ]
+    while len(lineup_table_rows) < 10:
+        lineup_table_rows.append([str(len(lineup_table_rows) + 1), "—", "—"])
+
+    sub_table_rows = [
+        [
+            str(row.get("Order", "")),
+            lineup_card_name(row.get("PlayerIn", "")),
+            row.get("ForLabel") or "—",
+            lineup_card_name(row.get("PlayerOut", "")),
+            row.get("Pos") or "—",
+        ]
+        for row in sub_rows
+    ]
+    while len(sub_table_rows) < 10:
+        sub_table_rows.append([str(len(sub_table_rows) + 1), "—", "—", "—", "—"])
+
+    top_y = 330
+    lineup_bottom = draw_table(
+        draw, 24, top_y, 620, "LINEUP",
+        ["ORDER", "PLAYER", "POS"],
+        lineup_table_rows[:10],
+        [120, 370, 130],
+        118,
+    )
+    subs_bottom = draw_table(
+        draw, 680, top_y, 990, card_meta.get("sub_title", "SUBSTITUTIONS").upper(),
+        ["ORDER", "PLAYER IN", "FOR", "PLAYER OUT", "POS"],
+        sub_table_rows[:10],
+        [135, 265, 200, 265, 125],
+        118,
+    )
+
+    lower_y = max(lineup_bottom, subs_bottom) + 28
+    bench_table_rows = [[lineup_card_name(player)] for player in bench_rows[:6]]
+    while len(bench_table_rows) < 6:
+        bench_table_rows.append([" "])
+    draw_table(
+        draw, 24, lower_y, 760, "BENCH / AVAILABLE",
+        [""],
+        bench_table_rows,
+        [760],
+        62,
+        title_height=50,
+        header_height=0,
+    )
+
+    pitcher_table_rows = [
+        [lineup_card_name(row.get("Pitcher", "")), row.get("Usage") or "—"]
+        for row in pitcher_rows[:6]
+    ]
+    while len(pitcher_table_rows) < 6:
+        pitcher_table_rows.append([" ", " "])
+    pitch_title_y = lower_y
+    pitch_title_h = 50
+    pitch_x = 820
+    pitch_w = 848
+    draw.rectangle([pitch_x, pitch_title_y, pitch_x + pitch_w, pitch_title_y + pitch_title_h], fill=black, outline=border, width=2)
+    draw_centered_text(draw, (pitch_x, pitch_title_y, pitch_x + pitch_w, pitch_title_y + pitch_title_h), "LIVE PITCHERS", white, load_lineup_card_font(28))
+    current_y = pitch_title_y + pitch_title_h
+    for pitcher_name, usage in pitcher_table_rows:
+        draw.rectangle([pitch_x, current_y, pitch_x + pitch_w, current_y + 62], outline=border, width=2)
+        draw_left_text(draw, pitch_x + 20, current_y + 12, pitcher_name, dark, fit_font(draw, pitcher_name, 340, 26, 16))
+        usage_font = fit_font(draw, usage, 320, 24, 15)
+        usage_bbox = draw.textbbox((0, 0), usage, font=usage_font)
+        usage_w = usage_bbox[2] - usage_bbox[0]
+        draw_left_text(draw, pitch_x + pitch_w - usage_w - 20, current_y + 14, usage, dark, usage_font)
+        current_y += 62
+
+    notes_y = lower_y + 450
+    notes_title_font = load_lineup_card_font(28)
+    draw_left_text(draw, 40, notes_y, "NOTES:", dark, notes_title_font)
+    draw.rectangle([24, notes_y + 54, width - 24, height - 24], outline=border, width=2)
+    note_font = fit_font(draw, notes or " ", width - 90, 24, 16)
+    notes_text = (notes or "").upper()
+    draw.multiline_text((40, notes_y + 78), notes_text, fill=dark, font=note_font, spacing=10)
+    mark_font = load_lineup_card_font(150)
+    draw.text((width - 210, height - 220), "B", fill=dark, font=mark_font, stroke_width=6, stroke_fill=orange)
+
+    return image
+
+
+def lineup_card_export_bytes(logo_path, card_meta, lineup_rows, sub_rows, bench_rows, pitcher_rows, notes):
+    image = render_lineup_card_image(logo_path, card_meta, lineup_rows, sub_rows, bench_rows, pitcher_rows, notes)
+    png_buffer = BytesIO()
+    image.save(png_buffer, format="PNG")
+    pdf_buffer = BytesIO()
+    image.save(pdf_buffer, format="PDF", resolution=300.0)
+    return png_buffer.getvalue(), pdf_buffer.getvalue()
+
+
 
 # ============================
 # UI TABS
@@ -2008,15 +2229,34 @@ with tab7:
         lineup_card_pitchers,
         lineup_card_notes,
     )
+    lineup_card_png, lineup_card_pdf = lineup_card_export_bytes(
+        os.path.join(os.getcwd(), "barons_logo.png"),
+        card_meta,
+        depth_chart_rows,
+        card_sub_rows,
+        bench_players,
+        lineup_card_pitchers,
+        lineup_card_notes,
+    )
 
     st.markdown("#### Lineup Card Preview")
     st.markdown(lineup_card_html, unsafe_allow_html=True)
-    st.download_button(
-        "Download Lineup Card HTML",
-        lineup_card_html,
-        file_name="barons_lineup_card.html",
-        mime="text/html"
-    )
+    st.image(lineup_card_png, caption="Print-ready lineup card preview", use_container_width=True)
+    export_col1, export_col2 = st.columns(2)
+    with export_col1:
+        st.download_button(
+            "Download Lineup Card PDF",
+            lineup_card_pdf,
+            file_name="barons_lineup_card.pdf",
+            mime="application/pdf"
+        )
+    with export_col2:
+        st.download_button(
+            "Download Lineup Card HTML",
+            lineup_card_html,
+            file_name="barons_lineup_card.html",
+            mime="text/html"
+        )
 
     col_save, col_preview = st.columns([1, 2])
     with col_save:
